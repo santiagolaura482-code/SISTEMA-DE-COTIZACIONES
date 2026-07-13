@@ -2175,7 +2175,7 @@ function getDatos() {
       email:  EMPRESA_FIJA.email,
     },
     cliente: {
-      nombre:  document.getElementById('cliNombre').value || '(Sin nombre)',
+      nombre:  document.getElementById('cliNombre').value.trim() || '(Sin nombre)',
       rif:     document.getElementById('cliRif').value,
       tel:     document.getElementById('cliTel').value,
       email:   document.getElementById('cliEmail').value,
@@ -2820,7 +2820,8 @@ function updateBadge() {
 // ─── GUARDAR COTIZACIÓN ───
 function guardarCotizacion() {
   var d = getDatos();
-  if(!d.cliente.nombre || d.cliente.nombre==='(Sin nombre)') {
+  var nombreCli = document.getElementById('cliNombre').value.trim();
+  if(!nombreCli) {
     toast('⚠️','Ingresa el nombre del cliente');
     document.getElementById('cliNombre').focus();
     return;
@@ -2852,10 +2853,16 @@ function guardarCotizacion() {
     savedAt:  new Date().toISOString()
   };
 
-  if(existeIdx>=0) { cots[existeIdx]=reg; toast('💾','Cotización actualizada'); }
-  else             { cots.unshift(reg);   toast('✅','Cotización guardada'); }
-  sgSet(cots);
-  updateBadge();
+  if(existeIdx>=0) {
+    cots[existeIdx]=reg;
+    sgSet(cots); updateBadge();
+    toast('💾','Cotización actualizada · '+reg.num);
+  } else {
+    cots.unshift(reg);
+    sgSet(cots); updateBadge();
+    toast('✅','Guardada · '+reg.num+' · Ver en Seguimiento');
+  }
+  setTimeout(function(){ showScreen('seg'); }, 700);
 }
 
 // ─── SEGUIMIENTO ───
@@ -3546,13 +3553,20 @@ function renderUnirList() {
     var div = document.createElement('div');
     div.className = 'unir-item' + (sel ? ' selected' : '');
     div.id = 'unirRow_'+it.id;
+    var mc3 = matColor(it.material||'');
+    var btn3d = '<button onclick="event.stopPropagation();abrir3D('+it.id+')" '+
+      'title="Ver 3D" style="background:#eff6ff;color:#2563eb;border:1px solid #bfdbfe;'+
+      'border-radius:6px;padding:3px 8px;font-size:11px;cursor:pointer;flex-shrink:0;">🔲</button>';
     div.innerHTML =
       '<div class="unir-check">'+(sel?'✓':'')+'</div>'+
-      '<div class="unir-label">'+(it.desc||it.tipo||'Ítem '+it.id)+'</div>'+
-      '<span class="unir-badge">'+it.tipo+'</span>'+
-      '<span class="unir-badge" style="background:'+(matColor(it.material||'').bg)+
-        ';color:'+(matColor(it.material||'').color)+'">'+it.material+'</span>'+
-      '<span class="unir-badge">'+(it.ancho||'—')+'×'+(it.alto||'—')+'m</span>';
+      '<div class="unir-label" style="flex:1;min-width:0;">'+
+        '<div>'+(it.desc||it.comboSerie||it.tipo||'Ítem '+it.id)+'</div>'+
+        '<div style="font-size:10px;color:#64748b;">'+(it.tipo||'')+(it.comboConfig?' · '+it.comboConfig:'')+'</div>'+
+      '</div>'+
+      '<span class="unir-badge" style="background:'+mc3.bg+';color:'+mc3.color+';">'+
+        (it.material||'').replace('Vidrio ','')+'</span>'+
+      '<span class="unir-badge">'+(it.ancho||'—')+'×'+(it.alto||'—')+'m</span>'+
+      btn3d;
     div.onclick = (function(id){ return function(){ toggleUnirById(id); }; })(it.id);
     list.appendChild(div);
   });
@@ -4239,267 +4253,61 @@ function rifFillFields(data) {
 // ── CONSULTAR DNI ──────────────────────────────────────
 // Usamos múltiples endpoints públicos en cascada
 function consultarDNI(dni) {
-  // API 1: apiperu.dev (gratuita, sin token)
-  fetch('https://dniruc.apisperu.com/api/v1/dni/' + dni + '?token=eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJlbWFpbCI6InVzZXJAZGVsYXRvcnJlZ2xhc3MucGUifQ.placeholder')
-    .then(function(r){ return r.json(); })
-    .then(function(d){
-      if(d && d.nombres) {
-        var nombre = [d.apellidoPaterno, d.apellidoMaterno, d.nombres]
-                     .filter(Boolean).join(' ');
-        rifFillFields({nombre: nombre});
-        rifSetStatus('✅ DNI encontrado', '#16a34a');
-        rifSetLoading(false);
-      } else {
-        consultarDNI_v2(dni);
-      }
-    })
-    .catch(function(){ consultarDNI_v2(dni); });
+  fetch('https://api.apis.net.pe/v2/reniec?numero='+dni, {
+    headers:{'Authorization':'Bearer apis-token-11889.0Y9yMx4T5yoaCE9h1nTrZ3Qe7wlNi3Gk','Accept':'application/json'}
+  })
+  .then(function(r){if(!r.ok)throw new Error(r.status);return r.json();})
+  .then(function(d){
+    var n=d.nombreCompleto||[d.apellidoPaterno,d.apellidoMaterno,d.nombres].filter(Boolean).join(' ');
+    if(n&&n.trim()){rifFillFields({nombre:n.trim()});rifSetStatus('✅ '+n.trim(),'#16a34a');rifSetLoading(false);}
+    else consultarDNI_v2(dni);
+  })
+  .catch(function(){consultarDNI_v2(dni);});
 }
-
 function consultarDNI_v2(dni) {
-  // API 2: api.apis.net.pe (pública, CORS libre)
-  fetch('https://api.apis.net.pe/v2/reniec?numero=' + dni, {
-    headers: {'Authorization': 'Bearer apis-token-11889.0Y9yMx4T5yoaCE9h1nTrZ3Qe7wlNi3Gk'}
+  fetch('https://api.peruapis.com/v1/dni/'+dni)
+  .then(function(r){return r.json();})
+  .then(function(d){
+    var n=d.nombre||d.nombreCompleto||[d.apellidoPaterno,d.apellidoMaterno,d.nombres].filter(Boolean).join(' ');
+    if(n&&n.trim()){rifFillFields({nombre:n.trim()});rifSetStatus('✅ '+n.trim(),'#16a34a');rifSetLoading(false);}
+    else consultarDNI_v3(dni);
   })
-    .then(function(r){ return r.json(); })
-    .then(function(d){
-      if(d && d.nombreCompleto) {
-        rifFillFields({nombre: d.nombreCompleto});
-        rifSetStatus('✅ DNI encontrado', '#16a34a');
-      } else if(d && (d.nombres || d.apellidoPaterno)) {
-        var nombre = [d.apellidoPaterno, d.apellidoMaterno, d.nombres]
-                     .filter(Boolean).join(' ');
-        rifFillFields({nombre: nombre});
-        rifSetStatus('✅ DNI encontrado', '#16a34a');
-      } else {
-        consultarDNI_v3(dni);
-      }
-      rifSetLoading(false);
-    })
-    .catch(function(){ consultarDNI_v3(dni); });
+  .catch(function(){consultarDNI_v3(dni);});
 }
-
 function consultarDNI_v3(dni) {
-  // API 3: facturacion.sunat.gob.pe proxy público
-  fetch('https://api.peruapis.com/v1/dni/' + dni)
-    .then(function(r){ return r.json(); })
-    .then(function(d){
-      if(d && d.nombre) {
-        rifFillFields({nombre: d.nombre});
-        rifSetStatus('✅ DNI encontrado', '#16a34a');
-      } else {
-        rifSetStatus('⚠ DNI no encontrado. Ingresa manualmente.', '#b45309');
-      }
-      rifSetLoading(false);
-    })
-    .catch(function(){
-      rifSetStatus('⚠ No se pudo conectar. Ingresa el nombre manualmente.', '#b45309');
-      rifSetLoading(false);
-    });
+  rifSetStatus('⚠ DNI no encontrado — ingresa el nombre','#b45309');
+  rifSetLoading(false);
 }
-
-// ── CONSULTAR RUC ──────────────────────────────────────
 function consultarRUC(ruc) {
-  // API 1: apis.net.pe — SUNAT (pública)
-  fetch('https://api.apis.net.pe/v2/sunat?numero=' + ruc, {
-    headers: {'Authorization': 'Bearer apis-token-11889.0Y9yMx4T5yoaCE9h1nTrZ3Qe7wlNi3Gk'}
+  fetch('https://api.apis.net.pe/v2/sunat?numero='+ruc, {
+    headers:{'Authorization':'Bearer apis-token-11889.0Y9yMx4T5yoaCE9h1nTrZ3Qe7wlNi3Gk','Accept':'application/json'}
   })
-    .then(function(r){ return r.json(); })
-    .then(function(d){
-      if(d && (d.razonSocial || d.nombre)) {
-        var data = {
-          nombre:    d.razonSocial || d.nombre || '',
-          direccion: formatDireccionRUC(d),
-          ciudad:    d.departamento || d.distrito || 'Lima',
-          telefono:  d.telefonos && d.telefonos[0] ? d.telefonos[0] : '',
-          email:     d.email || '',
-        };
-        rifFillFields(data);
-        rifSetStatus('✅ RUC encontrado · '+
-          (d.estadoContribuyente||'')+(d.condicionContribuyente?' · '+d.condicionContribuyente:''),
-          d.estadoContribuyente==='ACTIVO'?'#16a34a':'#b45309');
-        rifSetLoading(false);
-      } else {
-        consultarRUC_v2(ruc);
-      }
-    })
-    .catch(function(){ consultarRUC_v2(ruc); });
+  .then(function(r){if(!r.ok)throw new Error(r.status);return r.json();})
+  .then(function(d){
+    var n=d.razonSocial||d.nombre||'';
+    if(n){
+      var dir=d.direccion||[d.tipoVia,d.nombreVia,d.numero?'Nro.'+d.numero:'',d.nombreZona].filter(Boolean).join(' ');
+      rifFillFields({nombre:n,direccion:dir,ciudad:d.departamento||d.distrito||''});
+      rifSetStatus('✅ '+n+(d.estadoContribuyente?' · '+d.estadoContribuyente:''),d.estadoContribuyente==='ACTIVO'?'#16a34a':'#b45309');
+      rifSetLoading(false);
+    } else consultarRUC_v2(ruc);
+  })
+  .catch(function(){consultarRUC_v2(ruc);});
 }
-
 function consultarRUC_v2(ruc) {
-  // API 2: api.sunat.peruapis.com
-  fetch('https://api.peruapis.com/v1/ruc/' + ruc)
-    .then(function(r){ return r.json(); })
-    .then(function(d){
-      if(d && d.nombre) {
-        rifFillFields({
-          nombre:    d.nombre || d.razon_social || '',
-          direccion: d.direccion || '',
-          ciudad:    d.departamento || 'Lima',
-        });
-        rifSetStatus('✅ RUC encontrado', '#16a34a');
-      } else {
-        consultarRUC_v3(ruc);
-      }
-      rifSetLoading(false);
-    })
-    .catch(function(){ consultarRUC_v3(ruc); });
+  fetch('https://api.peruapis.com/v1/ruc/'+ruc)
+  .then(function(r){return r.json();})
+  .then(function(d){
+    var n=d.nombre||d.razon_social||d.razonSocial||'';
+    if(n){rifFillFields({nombre:n,direccion:d.direccion||'',ciudad:d.departamento||''});rifSetStatus('✅ '+n,'#16a34a');}
+    else rifSetStatus('⚠ RUC no encontrado en SUNAT','#b45309');
+    rifSetLoading(false);
+  })
+  .catch(function(){rifSetStatus('⚠ Sin conexión a SUNAT — ingresa los datos','#b45309');rifSetLoading(false);});
 }
-
-function consultarRUC_v3(ruc) {
-  // API 3: apisperu.com
-  fetch('https://dniruc.apisperu.com/api/v1/ruc/' + ruc +
-    '?token=eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJlbWFpbCI6InVzZXJAZGVsYXRvcnJlZ2xhc3MucGUifQ.placeholder')
-    .then(function(r){ return r.json(); })
-    .then(function(d){
-      if(d && d.razonSocial) {
-        rifFillFields({
-          nombre:    d.razonSocial,
-          direccion: d.direccionCompleta || d.direccion || '',
-          ciudad:    d.departamento || 'Lima',
-        });
-        rifSetStatus('✅ RUC encontrado', '#16a34a');
-      } else {
-        rifSetStatus('⚠ RUC no encontrado en SUNAT. Ingresa los datos manualmente.', '#b45309');
-      }
-      rifSetLoading(false);
-    })
-    .catch(function(){
-      rifSetStatus('⚠ Sin conexión a SUNAT. Ingresa los datos manualmente.', '#b45309');
-      rifSetLoading(false);
-    });
-}
-
-function formatDireccionRUC(d) {
-  var parts = [];
-  if(d.tipoVia)       parts.push(d.tipoVia);
-  if(d.nombreVia)     parts.push(d.nombreVia);
-  if(d.codigoZona)    parts.push(d.codigoZona);
-  if(d.nombreZona)    parts.push(d.nombreZona);
-  if(d.numero)        parts.push('Nro. '+d.numero);
-  if(d.interior)      parts.push('Int. '+d.interior);
-  if(d.lote)          parts.push('Lte. '+d.lote);
-  if(parts.length===0 && d.direccion) return d.direccion;
-  return parts.join(' ').trim();
-}
-
-
-
-
-
-
-
-// ═══════════════════════════════════════════════════════════
-//  ALMACENAMIENTO EN NUBE — JSONBin.io
-// ═══════════════════════════════════════════════════════════
-var CLOUD_CFG={API_KEY:'',BIN_ID:null,BASE:'https://api.jsonbin.io/v3',ENABLED:true,SYNCING:false};
-
-function cloudStatus(icon,msg,color){
-  var el=document.getElementById('cloudStatus');
-  if(el) el.innerHTML='<span style="color:'+(color||'rgba(255,255,255,.5)')+'">'+icon+' '+msg+'</span>';
-}
-
-function cloudSaveCfg(){
-  localStorage.setItem('dtg_cloud_cfg',JSON.stringify({BIN_ID:CLOUD_CFG.BIN_ID,API_KEY:CLOUD_CFG.API_KEY}));
-}
-
-function sgGetLocal(){
-  try{return JSON.parse(localStorage.getItem('dtg_cots_v3')||'[]');}catch(e){return[];}
-}
-function sgSetLocal(arr){
-  try{localStorage.setItem('dtg_cots_v3',JSON.stringify(arr));return true;}catch(e){return false;}
-}
-
-function cloudInit(){
-  var saved=localStorage.getItem('dtg_cloud_cfg');
-  if(saved){try{var cfg=JSON.parse(saved);if(cfg.BIN_ID)CLOUD_CFG.BIN_ID=cfg.BIN_ID;if(cfg.API_KEY)CLOUD_CFG.API_KEY=cfg.API_KEY;}catch(e){}}
-  if(CLOUD_CFG.BIN_ID&&CLOUD_CFG.API_KEY){cloudPull();}
-  else{cloudStatus('⚪','Sin nube — solo local','rgba(255,255,255,.4)');}
-}
-
-function cloudPush(cots,onOk,onErr){
-  if(!CLOUD_CFG.ENABLED||!CLOUD_CFG.API_KEY){if(onOk)onOk();return;}
-  cloudStatus('☁️','Guardando...','#7dd3fc');
-  var payload=JSON.stringify({cotizaciones:cots,updated:new Date().toISOString()});
-  if(CLOUD_CFG.BIN_ID){
-    fetch(CLOUD_CFG.BASE+'/b/'+CLOUD_CFG.BIN_ID,{
-      method:'PUT',
-      headers:{'Content-Type':'application/json','X-Master-Key':CLOUD_CFG.API_KEY},
-      body:payload
-    }).then(function(r){return r.json();}).then(function(d){
-      if(d.record){cloudStatus('✅','Guardado en nube','#86efac');if(onOk)onOk();}
-      else throw new Error();
-    }).catch(function(e){cloudStatus('⚠️','Solo local','#fcd34d');if(onErr)onErr(e);});
-  } else {
-    fetch(CLOUD_CFG.BASE+'/b',{
-      method:'POST',
-      headers:{'Content-Type':'application/json','X-Master-Key':CLOUD_CFG.API_KEY,
-               'X-Bin-Name':'DeLatorreGlass','X-Bin-Private':'true'},
-      body:payload
-    }).then(function(r){return r.json();}).then(function(d){
-      if(d.metadata&&d.metadata.id){
-        CLOUD_CFG.BIN_ID=d.metadata.id;cloudSaveCfg();
-        cloudStatus('✅','Nube activada','#86efac');if(onOk)onOk();
-      } else throw new Error();
-    }).catch(function(e){cloudStatus('⚠️','Solo local','#fcd34d');if(onErr)onErr(e);});
-  }
-}
-
-function cloudPull(){
-  if(!CLOUD_CFG.ENABLED||!CLOUD_CFG.BIN_ID||!CLOUD_CFG.API_KEY)return;
-  cloudStatus('🔄','Sincronizando...','#7dd3fc');
-  fetch(CLOUD_CFG.BASE+'/b/'+CLOUD_CFG.BIN_ID+'/latest',{
-    headers:{'X-Master-Key':CLOUD_CFG.API_KEY}
-  }).then(function(r){return r.json();}).then(function(d){
-    if(d.record&&d.record.cotizaciones){
-      var merged=mergeCotz(sgGetLocal(),d.record.cotizaciones);
-      sgSetLocal(merged);updateBadge();
-      cloudStatus('✅',merged.length+' cot. sincronizadas','#86efac');
-    } else {cloudStatus('✅','Conectado','#86efac');}
-  }).catch(function(){cloudStatus('⚠️','Sin conexión','#fcd34d');});
-}
-
-function mergeCotz(local,remote){
-  var map={};
-  (remote||[]).forEach(function(c){if(c.id)map[c.id]=c;});
-  (local||[]).forEach(function(c){
-    if(!c.id)return;
-    if(!map[c.id]){map[c.id]=c;return;}
-    if((c.savedAt||'')>=(map[c.id].savedAt||''))map[c.id]=c;
-  });
-  return Object.values(map).sort(function(a,b){return(b.savedAt||'').localeCompare(a.savedAt||'');});
-}
-
-function cloudSyncNow(){
-  var cots=sgGetLocal();
-  cloudPush(cots,function(){toast('✅','Sincronizado ('+cots.length+' cot.)');});
-}
-function cloudSetApiKey(key){
-  CLOUD_CFG.API_KEY=key.trim();CLOUD_CFG.BIN_ID=null;cloudSaveCfg();
-  toast('☁️','API Key guardada');cloudPull();
-}
-function openCloudConfig(){
-  var inp=document.getElementById('cloudApiKeyInput');
-  if(inp)inp.value=CLOUD_CFG.API_KEY||'';
-  var bi=document.getElementById('cloudBinInfo');
-  var bd=document.getElementById('cloudBinDetail');
-  if(CLOUD_CFG.BIN_ID){if(bi)bi.style.display='block';if(bd)bd.textContent='BIN: ...'+CLOUD_CFG.BIN_ID.slice(-8);}
-  else{if(bi)bi.style.display='none';}
-  var m=document.getElementById('cloudModal');if(m)m.classList.add('open');
-}
-function closeCloudConfig(){var m=document.getElementById('cloudModal');if(m)m.classList.remove('open');}
-function applyCloudConfig(){
-  var inp=document.getElementById('cloudApiKeyInput');
-  var key=inp?inp.value.trim():'';
-  if(!key){toast('⚠️','Ingresa tu API Key');return;}
-  cloudSetApiKey(key);closeCloudConfig();
-}
-function resetCloudConfig(){
-  if(!confirm('¿Desconectar la nube?'))return;
-  CLOUD_CFG.BIN_ID=null;CLOUD_CFG.API_KEY='';CLOUD_CFG.ENABLED=false;
-  localStorage.removeItem('dtg_cloud_cfg');
-  cloudStatus('⚪','Sin nube','rgba(255,255,255,.4)');
-  closeCloudConfig();toast('ℹ️','Nube desconectada');
+function consultarRUC_v3(ruc){consultarRUC_v2(ruc);}
+function formatDireccionRUC(d){
+  return [d.tipoVia,d.nombreVia,d.numero?'Nro.'+d.numero:'',d.nombreZona].filter(Boolean).join(' ')||(d.direccion||'');
 }
 
 
