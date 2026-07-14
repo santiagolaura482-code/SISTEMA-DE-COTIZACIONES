@@ -635,13 +635,14 @@ select option{background:#fff;}
                 <th style="min-width:105px;">Color</th>
                 <th style="min-width:95px;">Vidrio</th>
                 <th style="min-width:65px;">Grosor</th>
-                <th style="width:68px;">Ancho(m)</th>
-                <th style="width:68px;">Alto(m)</th>
+                <th style="width:72px;">Ancho(cm)</th>
+                <th style="width:72px;">Alto(cm)</th>
                 <th style="width:48px;text-align:center;">m²</th>
                 <th style="width:50px;text-align:center;">Cant.</th>
                 <th style="width:88px;">P.Unit.</th>
                 <th style="width:88px;text-align:right;">Subtotal</th>
                 <th style="width:38px;text-align:center;">3D</th>
+                <th style="width:32px;text-align:center;" title="Duplicar">📋</th>
                 <th style="width:34px;text-align:center;" title="Unir">🔗</th>
                 <th style="width:30px;text-align:center;">✕</th>
               </tr>
@@ -651,8 +652,23 @@ select option{background:#fff;}
         </div>
         <div class="gap8 mt12">
           <button class="btn btn-o btn-sm" onclick="agregarItem()">＋ Agregar ítem</button>
+          <button class="btn btn-sm" onclick="togglePreviewInline()" style="background:#f0fdf4;color:#16a34a;border:1px solid #86efac;font-weight:600;">👁 Vista previa</button>
           <button class="btn btn-sm" onclick="abrirUnir3D()" style="background:#f0fdf4;color:#16a34a;border:1px solid #86efac;font-weight:600;">🔗 Unir en 3D</button>
           <button class="btn btn-g btn-sm" onclick="limpiarItems()">🗑 Limpiar</button>
+        </div>
+      </div>
+    </div>
+
+
+    <!-- ══ VISTA PRELIMINAR ══ -->
+    <div class="section" id="previewSection" style="display:none;">
+      <div class="section-label">👁 Vista preliminar de cotización
+        <button class="btn btn-g btn-sm" style="margin-left:auto;font-size:11px;"
+          onclick="togglePreviewInline()">✕ Cerrar</button>
+      </div>
+      <div class="card" id="previewInlineBox" style="padding:0;overflow:hidden;">
+        <div id="previewInlineContent"
+          style="padding:20px;font-family:'Inter',sans-serif;font-size:12px;color:#1e293b;">
         </div>
       </div>
     </div>
@@ -1110,7 +1126,7 @@ function matColor(m) {
 function renderItems() {
   const tbody = document.getElementById('itemsBody');
   if(!items.length) {
-    tbody.innerHTML = '<tr class="empty-row"><td colspan="17" style="text-align:center;color:var(--muted);padding:18px;font-style:italic;">Sin ítems — haz clic en \"＋ Agregar ítem\"</td></tr>';
+    tbody.innerHTML = '<tr class="empty-row"><td colspan="18" style="text-align:center;color:var(--muted);padding:18px;font-style:italic;">Sin ítems — haz clic en \"＋ Agregar ítem\"</td></tr>';
     recalcular();
     return;
   }
@@ -1229,12 +1245,12 @@ function buildRowHTML(it, idx) {
     '</td>'+
 
     // Ancho
-    '<td><input type="number" value="'+escH(it.ancho||'')+'" placeholder="m" min="0" step="0.01"'+
-      ' style="font-size:12px;width:68px;" onchange="saveField('+it.id+',\'ancho\',this.value)"></td>'+
+    '<td><input type="number" value="'+escH(it.ancho||'')+'" placeholder="cm" min="0" step="1"'+
+      ' style="font-size:12px;width:70px;" title="Ancho en centímetros" onchange="saveField('+it.id+',\'ancho\',this.value)"></td>'+
 
     // Alto
-    '<td><input type="number" value="'+escH(it.alto||'')+'" placeholder="m" min="0" step="0.01"'+
-      ' style="font-size:12px;width:68px;" onchange="saveField('+it.id+',\'alto\',this.value)"></td>'+
+    '<td><input type="number" value="'+escH(it.alto||'')+'" placeholder="cm" min="0" step="1"'+
+      ' style="font-size:12px;width:70px;" title="Alto en centímetros" onchange="saveField('+it.id+',\'alto\',this.value)"></td>'+
 
     // m²
     '<td class="cell-m2" style="color:var(--accent);font-weight:600;font-size:12px;text-align:center;">'+
@@ -1261,6 +1277,13 @@ function buildRowHTML(it, idx) {
       '<button class="btn btn-sm" title="Vista 3D"'+
       ' style="background:#eff6ff;color:#2563eb;border:1px solid #bfdbfe;font-size:10px;padding:4px 7px;"'+
       ' onclick="abrir3D('+it.id+')">🔲</button>'+
+    '</td>'+
+
+    // Duplicar
+    '<td style="text-align:center;">'+
+      '<button class="btn btn-sm" title="Duplicar ítem"'+
+      ' style="background:#fffbeb;color:#b45309;border:1px solid #fcd34d;font-size:10px;padding:4px 7px;"'+
+      ' onclick="duplicarItem('+it.id+')">📋</button>'+
     '</td>'+
 
     // Unir
@@ -1878,8 +1901,9 @@ function build3DScene(tipo, matName, ancho, alto, cuerpos) {
 function abrir3D(id) {
   var it = items.find(function(i){return i.id===id;});
   if(!it) return;
-  var ancho = parseFloat(it.ancho)||1.2;
-  var alto  = parseFloat(it.alto)||1.0;
+  // Ancho/alto están en cm → convertir a metros para el 3D
+  var ancho = (parseFloat(it.ancho)||120) / 100;
+  var alto  = (parseFloat(it.alto)||100)  / 100;
   document.getElementById('lbl3DTitle').textContent = it.desc||it.tipo||'Vista 3D';
   document.getElementById('lbl3DDims').textContent  = 'Ancho: '+ancho+'m  ·  Alto: '+alto+'m';
   document.getElementById('lbl3DTipo').textContent  = it.tipo||'—';
@@ -2110,6 +2134,18 @@ function agregarItem() {
   renderItems();
 }
 
+
+function duplicarItem(id) {
+  var it = items.find(function(i){ return i.id===id; });
+  if(!it) return;
+  itemCounter++;
+  var copia = Object.assign({}, it, { id: itemCounter });
+  // Insertar justo después del original
+  var idx2 = items.findIndex(function(i){ return i.id===id; });
+  items.splice(idx2+1, 0, copia);
+  renderItems();
+  toast('📋','Ítem duplicado');
+}
 function limpiarItems() {
   if(confirm('¿Deseas limpiar todos los ítems?')) { items = []; itemCounter = 0; renderItems(); recalcular(); }
 }
@@ -2121,8 +2157,10 @@ function eliminarItem(id) {
 
 // ─── RENDER TABLA ───
 function calcM2(it) {
-  const a = parseFloat(it.ancho)||0, h = parseFloat(it.alto)||0;
-  return a * h;
+  // Ancho y alto en CENTÍMETROS → convertir a metros para calcular m²
+  var a = parseFloat(it.ancho)||0;
+  var h = parseFloat(it.alto)||0;
+  return (a / 100) * (h / 100);
 }
 function calcSubtotalItem(it) {
   return calcM2(it) > 0
@@ -2147,6 +2185,8 @@ function recalcular() {
   document.getElementById('resIva').textContent = '+' + fmt(ivaVal);
   document.getElementById('resTotal').textContent = fmt(total);
 }
+
+function _recalcOrig(){}
 
 // ─── RESET ───
 function resetForm() {
@@ -2239,26 +2279,47 @@ function openPreview() {
       ${d.cliente.dir ? `<br>Dir: ${d.cliente.dir}${d.cliente.ciudad ? ', '+d.cliente.ciudad : ''}` : ''}
     </div>
     <table>
-      <thead><tr>
-        <th>#</th><th>Descripción</th><th>Tipo</th><th>Material</th>
-        <th>Ancho</th><th>Alto</th><th>m²</th><th>Cant</th>
-        <th>P.Unit.</th><th>Subtotal</th>
-      </tr></thead>
-      <tbody>
-        ${d.items.map((it,i)=>`<tr>
-          <td>${i+1}</td>
-          <td>${it.desc||'—'}</td>
-          <td>${it.tipo}</td>
-          <td>${it.material}</td>
-          <td>${it.ancho||'—'}</td>
-          <td>${it.alto||'—'}</td>
-          <td>${calcM2(it).toFixed(2)}</td>
-          <td>${it.cant}</td>
-          <td>${fmt(it.precio)}</td>
-          <td style="font-weight:600;">${fmt(calcSubtotalItem(it))}</td>
-        </tr>`).join('')}
-      </tbody>
-    </table>
+    <thead><tr>
+      <th style="width:5%;">#</th>
+      <th style="width:35%;">Tipo / Descripción</th>
+      <th style="width:17%;text-align:center;">Medidas (cm)</th>
+      <th style="width:8%;text-align:center;">m²</th>
+      <th style="width:7%;text-align:center;">Cant.</th>
+      <th class="right" style="width:14%;">Subtotal (${sym})</th>
+    </tr></thead>
+    <tbody>
+      ${d.items.map((it,i)=>{
+        const m2w = calcM2(it);
+        const subw = calcSubtotalItem(it);
+        const cantw = parseFloat(it.cant)||1;
+        const descw = it.desc ||
+          [it.comboSerie,it.comboConfig,it.comboColor,it.comboVidrio,it.comboGrosor].filter(Boolean).join(' · ') || '';
+        const medw = (it.ancho&&it.alto)?it.ancho+'×'+it.alto:'—';
+        const m2tw = m2w>0?(m2w*cantw).toFixed(2):'—';
+        return `<tr>
+          <td style="text-align:center;font-weight:700;">${i+1}</td>
+          <td>
+            <strong>${it.tipo||'—'}</strong>
+            ${descw?`<br><span class="muted">${descw}</span>`:''}
+            ${it.material?`<br><span class="muted">Mat: ${it.material}</span>`:''}
+          </td>
+          <td style="text-align:center;">${medw}</td>
+          <td style="text-align:center;">${m2tw}</td>
+          <td style="text-align:center;">${cantw}</td>
+          <td class="right" style="font-weight:700;">${sym} ${parseFloat(subw||0).toFixed(2)}</td>
+        </tr>`;
+      }).join('')}
+    </tbody>
+    <tfoot>
+      ${descVal>0?`<tr><td colspan="5" class="right" style="color:#555;">Descuento (${d.fin.descPct}%)</td><td class="right" style="color:#c00;">- ${sym} ${descVal.toFixed(2)}</td></tr>`:''}
+      ${ivaVal>0?`<tr><td colspan="5" class="right" style="color:#555;">IGV/IVA (${d.fin.ivaPct}%)</td><td class="right">${sym} ${ivaVal.toFixed(2)}</td></tr>`:''}
+      ${d.fin.mano>0?`<tr><td colspan="5" class="right" style="color:#555;">Instalación</td><td class="right">${sym} ${parseFloat(d.fin.mano).toFixed(2)}</td></tr>`:''}
+      <tr class="total-row">
+        <td colspan="5" class="right">TOTAL</td>
+        <td class="right">${sym} ${total.toFixed(2)}</td>
+      </tr>
+    </tfoot>
+  </table>
     <div style="max-width:280px;margin-left:auto;margin-top:8px;">
       <div class="summary-row"><span class="summary-label">Subtotal</span><span>${fmt(d.fin.subtotal)}</span></div>
       ${d.fin.descPct>0?`<div class="summary-row"><span class="summary-label">Descuento (${d.fin.descPct}%)</span><span style="color:#fbbf24;">-${fmt(descVal)}</span></div>`:''}
@@ -2593,64 +2654,52 @@ function buildPDFHtml(d) {
     <!-- BANNER DESCRIPCIÓN -->
     <div class="desc-banner">DESCRIPCION DEL SERVICIO</div>
 
-    <!-- ITEMS -->
-    ${d.items.map((it,i) => {
-      const m2 = calcM2(it);
-      const sub = calcSubtotalItem(it);
-      const medidas = (it.ancho && it.alto) ? `${it.ancho} x ${it.alto} m` : '';
-      return `<div class="items-wrap">
-        <div style="display:grid;grid-template-columns:80px 1fr;gap:0;margin-bottom:8px;">
-          <div>
-            <div class="cant-label">CANTIDAD</div>
-            <div class="cant-val">${it.tipo||'—'}</div>
-          </div>
-          <div>
-            ${medidas ? `<div class="medidas-label">MEDIDAS</div>
-            <ul class="medidas-list"><li>• ${medidas}${m2>0?` (${m2.toFixed(2)} m²)`:''}</li></ul>` : ''}
-          </div>
-        </div>
-        <table class="service-table">
-          <thead><tr>
-            <th style="width:15%">CÓDIGO</th>
-            <th style="width:20%">MATERIAL</th>
-            <th>DESCRIPCIÓN</th>
-            <th style="width:18%;text-align:center;">CANT.</th>
-            <th style="width:18%;text-align:center;">P. UNIT.</th>
-          </tr></thead>
-          <tbody>
-            <tr>
-              <td style="text-align:center;font-weight:700;">${String(i+1).padStart(2,'0')}</td>
-              <td>${it.material}</td>
-              <td><strong>${it.desc || it.tipo}</strong></td>
-              <td style="text-align:center;font-weight:600;">${it.cant}</td>
-              <td style="text-align:center;font-weight:700;">${fmtP(it.precio)}</td>
-            </tr>
-          </tbody>
-        </table>
-        <div style="margin:0;">
-          <table style="width:100%;border-collapse:collapse;font-size:10pt;">
-            <tr class="precio-row">
-              <td class="precio-label" style="width:50%;padding:8px 10px;border:1px solid #ddd;">PRECIO</td>
-              <td style="padding:4px 10px;border:1px solid #ddd;width:50%;">
-                <div class="precio-divider"></div>
-                <div class="precio-val">${fmtP(sub)}</div>
-                <div class="precio-divider"></div>
-              </td>
-            </tr>
-          </table>
-        </div>
-      </div>`;
-    }).join('<hr style="border:1px dashed #ccd;margin:16px 0;">')}
-
-    <!-- RESUMEN FINANCIERO (si hay múltiples items o descuentos) -->
-    ${(d.items.length > 1 || d.fin.descPct > 0 || d.fin.ivaPct > 0 || d.fin.mano > 0) ? `
-    <div class="fin-box">
-      ${d.fin.descPct>0?`<div class="fin-row"><span>Subtotal</span><span>${fmtP(d.fin.subtotal)}</span></div>`:''}
-      ${d.fin.descPct>0?`<div class="fin-row"><span>Descuento (${d.fin.descPct}%)</span><span>-${fmtP(descVal)}</span></div>`:''}
-      ${d.fin.ivaPct>0?`<div class="fin-row"><span>IGV/IVA (${d.fin.ivaPct}%)</span><span>${fmtP(ivaVal)}</span></div>`:''}
-      ${d.fin.mano>0?`<div class="fin-row"><span>Instalación</span><span>${fmtP(d.fin.mano)}</span></div>`:''}
-      <div class="fin-row"><span>TOTAL ${d.cot.moneda}</span><span>${fmtP(total)}</span></div>
-    </div>` : ''}
+    <!-- TABLA CONSOLIDADA DE ÍTEMS -->
+    <table style="width:100%;border-collapse:collapse;margin-bottom:0;font-size:10pt;">
+      <thead>
+        <tr style="background:#1a3a8f;color:#fff;">
+          <th style="padding:9px 10px;text-align:center;width:32px;">#</th>
+          <th style="padding:9px 10px;text-align:left;">Tipo / Descripción</th>
+          <th style="padding:9px 10px;text-align:center;width:110px;">Medidas (cm)</th>
+          <th style="padding:9px 10px;text-align:center;width:52px;">m²</th>
+          <th style="padding:9px 10px;text-align:center;width:46px;">Cant.</th>
+          <th style="padding:9px 10px;text-align:right;width:110px;">Subtotal</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${d.items.map((it,i) => {
+          const m2  = calcM2(it);
+          const sub = calcSubtotalItem(it);
+          const cant = parseFloat(it.cant)||1;
+          const desc = it.desc ||
+            [it.comboSerie,it.comboConfig,it.comboColor,it.comboVidrio,it.comboGrosor].filter(Boolean).join(' · ') || '';
+          const medidas = (it.ancho && it.alto) ? it.ancho+'×'+it.alto : '—';
+          const m2txt = m2>0 ? (m2*cant).toFixed(2) : '—';
+          const bg = i%2===0 ? '#ffffff' : '#f8f9fb';
+          return `<tr style="background:${bg};border-bottom:1px solid #dde;">
+            <td style="padding:9px 10px;text-align:center;font-weight:700;color:#1a3a8f;border:1px solid #dde;">${i+1}</td>
+            <td style="padding:9px 10px;border:1px solid #dde;">
+              <div style="font-weight:700;font-size:11pt;color:#1a3a8f;">${it.tipo||'—'}</div>
+              ${desc?`<div style="font-size:9pt;color:#444;margin-top:2px;">${desc}</div>`:''}
+              ${it.material?`<div style="font-size:9pt;color:#666;">Material: ${it.material}</div>`:''}
+            </td>
+            <td style="padding:9px 10px;text-align:center;font-size:9pt;border:1px solid #dde;">${medidas}</td>
+            <td style="padding:9px 10px;text-align:center;font-size:9pt;border:1px solid #dde;">${m2txt}</td>
+            <td style="padding:9px 10px;text-align:center;font-weight:600;border:1px solid #dde;">${cant}</td>
+            <td style="padding:9px 10px;text-align:right;font-weight:700;color:#1a3a8f;border:1px solid #dde;">${fmtP(sub)}</td>
+          </tr>`;
+        }).join('')}
+      </tbody>
+      <tfoot>
+        ${d.fin.descPct>0 ? `<tr style="background:#fff8e1;"><td colspan="5" style="padding:7px 10px;text-align:right;color:#555;border:1px solid #dde;">Descuento (${d.fin.descPct}%)</td><td style="padding:7px 10px;text-align:right;color:#c00;font-weight:700;border:1px solid #dde;">- ${fmtP(total*(d.fin.descPct/100/(1-d.fin.descPct/100+0.0001)))}</td></tr>` : ''}
+        ${d.fin.ivaPct>0 ? `<tr style="background:#f8f9fb;"><td colspan="5" style="padding:7px 10px;text-align:right;color:#555;border:1px solid #dde;">IGV / IVA (${d.fin.ivaPct}%)</td><td style="padding:7px 10px;text-align:right;font-weight:700;border:1px solid #dde;">${fmtP(base*d.fin.ivaPct/100)}</td></tr>` : ''}
+        ${d.fin.mano>0 ? `<tr style="background:#f8f9fb;"><td colspan="5" style="padding:7px 10px;text-align:right;color:#555;border:1px solid #dde;">Instalación</td><td style="padding:7px 10px;text-align:right;font-weight:700;border:1px solid #dde;">${fmtP(d.fin.mano)}</td></tr>` : ''}
+        <tr style="background:#1a3a8f;color:#fff;">
+          <td colspan="5" style="padding:11px 14px;text-align:right;font-weight:800;font-size:13pt;letter-spacing:1px;">TOTAL</td>
+          <td style="padding:11px 14px;text-align:right;font-weight:800;font-size:15pt;color:#fcd34d;">${fmtP(total)}</td>
+        </tr>
+      </tfoot>
+    </table>
 
     <!-- NOTA -->
     <div class="nota-section">
@@ -2737,26 +2786,27 @@ function exportWord() {
   <h2>Detalle de Productos / Servicios</h2>
   <table>
     <thead><tr>
-      <th>#</th><th>Descripción</th><th>Tipo</th><th>Material</th>
-      <th>Ancho</th><th>Alto</th><th>m²</th><th>Cant</th>
-      <th class="right">P.Unit (${sym})</th><th class="right">Subtotal (${sym})</th>
+      <th style="width:20pt;">#</th>
+      <th>Tipo / Descripción</th>
+      <th style="width:78pt;text-align:center;">Medidas (cm)</th>
+      <th style="width:36pt;text-align:center;">m²</th>
+      <th style="width:32pt;text-align:center;">Cant.</th>
     </tr></thead>
     <tbody>
-      ${d.items.map((it,i)=>`<tr>
-        <td>${i+1}</td><td>${it.desc||'—'}</td><td>${it.tipo}</td><td>${it.material}</td>
-        <td>${it.ancho||'—'}</td><td>${it.alto||'—'}</td>
-        <td>${calcM2(it).toFixed(2)}</td><td>${it.cant}</td>
-        <td class="right">${parseFloat(it.precio||0).toFixed(2)}</td>
-        <td class="right">${calcSubtotalItem(it).toFixed(2)}</td>
-      </tr>`).join('')}
+      ${d.items.map((it,i)=>{
+        const m2x=calcM2(it);
+        const dx=[it.comboSerie,it.comboConfig,it.comboColor,it.comboVidrio,it.comboGrosor].filter(Boolean).join(' · ')||it.desc||'—';
+        const mx=(it.ancho&&it.alto)?it.ancho+' × '+it.alto+' cm':'—';
+        return `<tr><td>${i+1}</td><td><strong>${it.tipo||'—'}</strong>${dx&&dx!==it.tipo?'<br><span class="muted">'+dx+'</span>':''}${it.material?'<br><span class="muted">'+it.material+'</span>':''}</td><td style="text-align:center;">${mx}</td><td style="text-align:center;">${m2x>0?m2x.toFixed(2):'—'}</td><td style="text-align:center;">${it.cant||1}</td></tr>`;
+      }).join('')}
     </tbody>
   </table>
 
   <table style="width:260pt;margin-left:auto;">
-    <tr><td>Subtotal</td><td class="right">${sym} ${d.fin.subtotal.toFixed(2)}</td></tr>
-    ${d.fin.descPct>0?`<tr><td>Descuento (${d.fin.descPct}%)</td><td class="right" style="color:#b45309;">-${sym} ${descVal.toFixed(2)}</td></tr>`:''}
-    <tr><td>IVA (${d.fin.ivaPct}%)</td><td class="right">${sym} ${ivaVal.toFixed(2)}</td></tr>
-    ${d.fin.mano>0?`<tr><td>Instalación</td><td class="right">${sym} ${d.fin.mano.toFixed(2)}</td></tr>`:''}
+    ${d.fin.descPct>0?`<tr><td class="muted">Subtotal</td><td class="right">${sym} ${d.fin.subtotal.toFixed(2)}</td></tr>`:''}
+    ${d.fin.descPct>0?`<tr><td class="muted">Descuento (${d.fin.descPct}%)</td><td class="right" style="color:#b45309;">-${sym} ${(d.fin.subtotal*d.fin.descPct/100).toFixed(2)}</td></tr>`:''}
+    ${d.fin.ivaPct>0?`<tr><td class="muted">IGV/IVA (${d.fin.ivaPct}%)</td><td class="right">${sym} ${((d.fin.subtotal-(d.fin.subtotal*d.fin.descPct/100))*d.fin.ivaPct/100).toFixed(2)}</td></tr>`:''}
+    ${d.fin.mano>0?`<tr><td class="muted">Instalación</td><td class="right">${sym} ${parseFloat(d.fin.mano).toFixed(2)}</td></tr>`:''}
     <tr class="total-row"><td><strong>TOTAL</strong></td><td class="right"><strong>${sym} ${total.toFixed(2)}</strong></td></tr>
   </table>
 
@@ -4309,6 +4359,160 @@ function consultarRUC_v3(ruc){consultarRUC_v2(ruc);}
 function formatDireccionRUC(d){
   return [d.tipoVia,d.nombreVia,d.numero?'Nro.'+d.numero:'',d.nombreZona].filter(Boolean).join(' ')||(d.direccion||'');
 }
+
+
+
+
+// ── Vista preliminar inline ──────────────────────────────
+function togglePreviewInline() {
+  var sec = document.getElementById('previewSection');
+  if(!sec) return;
+  var visible = sec.style.display !== 'none';
+  if(visible) {
+    sec.style.display = 'none';
+  } else {
+    sec.style.display = 'block';
+    renderPreviewInline();
+    // Scroll suave hasta la vista previa
+    setTimeout(function(){
+      sec.scrollIntoView({behavior:'smooth', block:'start'});
+    }, 100);
+  }
+}
+
+function renderPreviewInline() {
+  var d   = getDatos();
+  var box = document.getElementById('previewInlineContent');
+  if(!box) return;
+
+  var moneda = d.cot.moneda || 'PEN';
+  var sym    = SIM[moneda] || 'S/';
+
+  // Calcular totales
+  var subtotal = items.reduce(function(s,it){ return s + calcSubtotalItem(it); }, 0);
+  var descPct  = parseFloat(document.getElementById('descPct').value)||0;
+  var ivaPct   = parseFloat(document.getElementById('ivaPct').value)||0;
+  var mano     = parseFloat(document.getElementById('manoObra').value)||0;
+  var descVal  = subtotal * descPct / 100;
+  var base     = subtotal - descVal;
+  var ivaVal   = base * ivaPct / 100;
+  var total    = base + ivaVal + mano;
+
+  function fmtN(n){ return sym+' '+parseFloat(n||0).toLocaleString('es',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+
+  // Header empresa + cliente
+  var html2 = '<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">';
+
+  // Empresa
+  html2 += '<div>'
+    + '<div style="font-family:Space Grotesk,sans-serif;font-size:15px;font-weight:800;color:#1e293b;margin-bottom:4px;">'
+    + d.empresa.nombre + '</div>'
+    + '<div style="font-size:11px;color:#64748b;line-height:1.7;">'
+    + 'RUC: '+d.empresa.ruc+'<br>'
+    + d.empresa.tel+'<br>'
+    + d.empresa.dir+'<br>'
+    + d.empresa.email
+    + '</div></div>';
+
+  // Cotización info
+  html2 += '<div style="text-align:right;">'
+    + '<div style="font-family:Space Grotesk,sans-serif;font-size:18px;font-weight:800;color:#2563eb;">COTIZACIÓN</div>'
+    + '<div style="font-size:12px;color:#1e293b;margin-top:4px;line-height:1.7;">'
+    + '<strong>N°:</strong> '+(d.cot.num||'—')+'<br>'
+    + '<strong>Fecha:</strong> '+(d.cot.fecha||'—')+'<br>'
+    + '<strong>Válida hasta:</strong> '+(d.cot.validez||'—')+'<br>'
+    + '<strong>Moneda:</strong> '+moneda
+    + '</div></div>';
+  html2 += '</div>';
+
+  // Divider
+  html2 += '<div style="height:2px;background:linear-gradient(90deg,#2563eb,#93c5fd);border-radius:2px;margin-bottom:14px;"></div>';
+
+  // Cliente
+  html2 += '<div style="background:#f8fafc;border-radius:10px;padding:12px 14px;margin-bottom:14px;border:1px solid #e2e8f0;">'
+    + '<div style="font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;">Cliente</div>'
+    + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:12px;">'
+    + '<div><strong>'+d.cliente.nombre+'</strong></div>'
+    + '<div>'+( d.cliente.rif ? 'DNI/RUC: '+d.cliente.rif : '')+'</div>'
+    + '<div>'+( d.cliente.tel || '')+'</div>'
+    + '<div>'+( d.cliente.email || '')+'</div>'
+    + '<div style="grid-column:span 2;">'+( d.cliente.dir ? '📍 '+d.cliente.dir+(d.cliente.ciudad?', '+d.cliente.ciudad:'') : '')+'</div>'
+    + '</div></div>';
+
+  // Tabla de ítems
+  html2 += '<table style="width:100%;border-collapse:collapse;font-size:11px;margin-bottom:14px;">'
+    + '<thead><tr style="background:#f1f5f9;">'
+    + '<th style="padding:7px 8px;text-align:left;font-weight:700;color:#64748b;border-bottom:2px solid #e2e8f0;width:28px;">#</th>'
+    + '<th style="padding:7px 8px;text-align:left;font-weight:700;color:#64748b;border-bottom:2px solid #e2e8f0;">Descripción / Producto</th>'
+    + '<th style="padding:7px 8px;text-align:center;font-weight:700;color:#64748b;border-bottom:2px solid #e2e8f0;width:70px;">Medidas</th>'
+    + '<th style="padding:7px 8px;text-align:center;font-weight:700;color:#64748b;border-bottom:2px solid #e2e8f0;width:42px;">m²</th>'
+    + '<th style="padding:7px 8px;text-align:center;font-weight:700;color:#64748b;border-bottom:2px solid #e2e8f0;width:38px;">Cant.</th>'
+    + '<th style="padding:7px 8px;text-align:right;font-weight:700;color:#64748b;border-bottom:2px solid #e2e8f0;width:80px;">P.Unit.</th>'
+    + '<th style="padding:7px 8px;text-align:right;font-weight:700;color:#64748b;border-bottom:2px solid #e2e8f0;width:80px;">Subtotal</th>'
+    + '</tr></thead><tbody>';
+
+  items.forEach(function(it, i) {
+    var m2   = calcM2(it);
+    var sub  = calcSubtotalItem(it);
+    // Descripción: usar combo o descripción manual
+    var desc = it.desc || [it.comboSerie, it.comboConfig, it.comboColor, it.comboVidrio, it.comboGrosor].filter(Boolean).join(' · ') || it.tipo || '—';
+    var mat  = it.material || '';
+    // Medidas en cm
+    var med  = (it.ancho && it.alto) ? it.ancho+'×'+it.alto+' cm' : '—';
+
+    html2 += '<tr style="border-bottom:1px solid #f1f5f9;'+(i%2===0?'':'background:#fafafa')+'">'
+      + '<td style="padding:7px 8px;color:#94a3b8;text-align:center;">'+(i+1)+'</td>'
+      + '<td style="padding:7px 8px;">'
+        + '<div style="font-weight:600;color:#1e293b;">'+(it.tipo||'—')+'</div>'
+        + '<div style="color:#64748b;font-size:10px;">'+desc+'</div>'
+        + (mat ? '<div style="color:#94a3b8;font-size:10px;">'+mat+'</div>' : '')
+      + '</td>'
+      + '<td style="padding:7px 8px;text-align:center;color:#64748b;">'+med+'</td>'
+      + '<td style="padding:7px 8px;text-align:center;color:#2563eb;font-weight:600;">'+(m2>0?m2.toFixed(2):'—')+'</td>'
+      + '<td style="padding:7px 8px;text-align:center;">'+(it.cant||1)+'</td>'
+      + '<td style="padding:7px 8px;text-align:right;">'+fmtN(it.precio||0)+'</td>'
+      + '<td style="padding:7px 8px;text-align:right;font-weight:700;color:#1e40af;">'+fmtN(sub)+'</td>'
+      + '</tr>';
+  });
+
+  html2 += '</tbody></table>';
+
+  // Totales
+  html2 += '<div style="display:flex;justify-content:flex-end;">'
+    + '<div style="width:260px;">'
+    + '<div style="display:flex;justify-content:space-between;padding:5px 0;font-size:12px;border-bottom:1px solid #f1f5f9;">'
+      + '<span style="color:#64748b;">Subtotal</span><span>'+fmtN(subtotal)+'</span></div>';
+  if(descPct > 0)
+    html2 += '<div style="display:flex;justify-content:space-between;padding:5px 0;font-size:12px;border-bottom:1px solid #f1f5f9;">'
+      + '<span style="color:#64748b;">Descuento ('+descPct+'%)</span><span style="color:#dc2626;">-'+fmtN(descVal)+'</span></div>';
+  if(ivaPct > 0)
+    html2 += '<div style="display:flex;justify-content:space-between;padding:5px 0;font-size:12px;border-bottom:1px solid #f1f5f9;">'
+      + '<span style="color:#64748b;">IGV/IVA ('+ivaPct+'%)</span><span>'+fmtN(ivaVal)+'</span></div>';
+  if(mano > 0)
+    html2 += '<div style="display:flex;justify-content:space-between;padding:5px 0;font-size:12px;border-bottom:1px solid #f1f5f9;">'
+      + '<span style="color:#64748b;">Instalación</span><span>'+fmtN(mano)+'</span></div>';
+  html2 += '<div style="display:flex;justify-content:space-between;padding:9px 0 4px;font-size:15px;font-weight:800;border-top:2px solid #2563eb;margin-top:4px;">'
+    + '<span style="color:#1e293b;">TOTAL</span><span style="color:#2563eb;">'+fmtN(total)+'</span></div>';
+  html2 += '</div></div>';
+
+  // Condiciones
+  if(d.cot.pago || d.cot.entrega || d.cot.obs) {
+    html2 += '<div style="margin-top:14px;padding:10px 14px;background:#f8fafc;border-radius:9px;border:1px solid #e2e8f0;font-size:11px;line-height:1.7;">';
+    if(d.cot.pago)    html2 += '<div><strong>Pago:</strong> '+d.cot.pago+'</div>';
+    if(d.cot.entrega) html2 += '<div><strong>Entrega:</strong> '+d.cot.entrega+'</div>';
+    if(d.cot.obs)     html2 += '<div><strong>Notas:</strong> '+d.cot.obs+'</div>';
+    html2 += '</div>';
+  }
+
+  box.innerHTML = html2;
+}
+
+// Actualizar vista previa si está abierta cuando cambia algo
+function refreshPreviewIfOpen() {
+  var sec = document.getElementById('previewSection');
+  if(sec && sec.style.display !== 'none') renderPreviewInline();
+}
+
 
 
 </script>
