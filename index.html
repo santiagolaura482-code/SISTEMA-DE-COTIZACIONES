@@ -505,6 +505,125 @@ select option{background:#fff;}
 .td-p{padding:5px 4px;border-bottom:1px solid #f1f5f9;vertical-align:middle;overflow:hidden;}
 .td-p input,.td-p select,table input,table select{padding:3px 4px;font-size:10.5px;border-radius:6px;width:100%;min-width:0;box-sizing:border-box;}
 tr:hover .td-p{background:#f8fafc;}
+
+/* ══ PRODUCTOS MÓVIL ══ */
+/* En desktop: tabla visible, cards ocultas */
+.prod-mob-cards { display:none; }
+
+@media(max-width:680px){
+  /* Ocultar tabla horizontal */
+  .prod-desktop-table { display:none !important; }
+  /* Mostrar tarjetas verticales */
+  .prod-mob-cards { display:flex; flex-direction:column; gap:10px; padding:10px; }
+
+  /* Sidebar horizontal en móvil */
+  .app-layout { flex-direction:column; }
+  .sidebar {
+    width:100%; height:auto; position:relative;
+    flex-direction:row; display:flex;
+    border-right:none; border-bottom:1px solid rgba(255,255,255,.12);
+    overflow-x:auto; overflow-y:hidden;
+  }
+  .sb-brand { padding:8px 12px; flex-shrink:0; border-bottom:none; }
+  .sb-brand-logo { width:26px; height:26px; }
+  .sb-user { display:none; }
+  .sb-section, .sb-divider, .sb-footer { display:none; }
+  .sidebar-nav-wrap {
+    display:flex; flex-direction:row;
+    padding:4px 6px; gap:2px; flex:1; overflow-x:auto;
+  }
+  .nav-item {
+    flex-direction:column; gap:2px; padding:5px 8px;
+    font-size:10px; min-width:62px; border-left:none;
+    border-bottom:3px solid transparent;
+    white-space:nowrap;
+  }
+  .nav-item.active {
+    border-bottom-color:var(--sb-active);
+    border-left:none;
+    background:rgba(245,158,11,.08);
+  }
+  .nav-item .nav-icon { font-size:16px; }
+  .nav-item .nav-badge { margin-left:0; }
+
+  main.inner { padding:10px 10px; }
+  .app-header { padding:8px 12px; }
+  .fr.c2 { grid-template-columns:1fr 1fr; }
+  .fr.c3,.fr.c4 { grid-template-columns:1fr 1fr; }
+}
+
+/* Tarjeta de ítem en móvil */
+.imob-card {
+  background:#fff;
+  border:1px solid var(--border);
+  border-radius:12px;
+  padding:14px;
+  box-shadow:0 1px 4px rgba(0,0,0,.06);
+}
+.imob-hdr {
+  display:flex; justify-content:space-between; align-items:center;
+  margin-bottom:10px;
+  padding-bottom:8px;
+  border-bottom:1px solid #f1f5f9;
+}
+.imob-num {
+  font-size:10px; color:var(--muted);
+  background:#f1f5f9; border-radius:4px;
+  padding:2px 8px; font-weight:700;
+}
+.imob-tipo {
+  font-size:13px; font-weight:700; color:var(--text);
+}
+.imob-actions {
+  display:flex; gap:5px;
+}
+.imob-actions button {
+  padding:4px 8px; font-size:11px;
+  border-radius:7px; cursor:pointer;
+  border:1px solid var(--border);
+  background:#f8fafc;
+}
+.imob-field {
+  display:flex; flex-direction:column;
+  margin-bottom:8px;
+}
+.imob-field label {
+  font-size:10px; font-weight:700;
+  color:var(--muted); margin-bottom:3px;
+  text-transform:uppercase; letter-spacing:.4px;
+}
+.imob-field select,
+.imob-field input {
+  width:100%; padding:8px 10px;
+  font-size:13px; border-radius:8px;
+  border:1px solid var(--border);
+  background:#fff; color:var(--text);
+}
+.imob-row2 {
+  display:grid; grid-template-columns:1fr 1fr; gap:8px;
+}
+.imob-m2-box {
+  background:#f0f8ff; border:1px solid #bfdbfe;
+  border-radius:8px; padding:8px 12px;
+  display:flex; justify-content:space-between; align-items:center;
+  margin-bottom:8px;
+}
+.imob-m2-lbl { font-size:11px; color:#64748b; }
+.imob-m2-val { font-size:15px; font-weight:800; color:#2563eb; }
+.imob-subs {
+  display:grid; grid-template-columns:1fr 1fr; gap:8px;
+  margin-top:8px; padding-top:8px; border-top:1px solid #f1f5f9;
+}
+.imob-sub-pen {
+  background:#f0fdf4; border-radius:8px; padding:8px;
+  text-align:center;
+}
+.imob-sub-usd {
+  background:#fffbeb; border-radius:8px; padding:8px;
+  text-align:center;
+}
+.imob-sub-label { font-size:9px; color:var(--muted); text-transform:uppercase; }
+.imob-sub-val { font-size:14px; font-weight:800; display:block; margin-top:2px; }
 </style>
 </head>
 <body>
@@ -680,7 +799,7 @@ tr:hover .td-p{background:#f8fafc;}
 
         <!-- Tabla -->
         <div style="width:100%;overflow:hidden;">
-        <table style="width:100%;border-collapse:collapse;table-layout:fixed;font-size:11px;">
+        <table class="prod-desktop-table" style="width:100%;border-collapse:collapse;table-layout:fixed;font-size:11px;">
           <colgroup>
             <col style="width:3%">   <!-- # -->
             <col style="width:10%">  <!-- Categoría -->
@@ -728,6 +847,9 @@ tr:hover .td-p{background:#f8fafc;}
           </tbody>
         </table>
         </div>
+
+        <!-- Tarjetas móvil -->
+        <div class="prod-mob-cards" id="itemsMobCards"></div>
 
       </div>
     </div>
@@ -1221,6 +1343,8 @@ function renderItems() {
     var td=document.getElementById('tc_'+it.id);
     if(td) td.style.display=usd?'table-cell':'none';
   });
+  // Actualizar tarjetas móvil
+  renderItemsMob();
 }
 
 function buildRowHTML(it, idx) {
@@ -3336,6 +3460,118 @@ function ifUpdateSym() {
   if(tcWrap) tcWrap.style.display = (m && m.value==='USD') ? 'block' : 'none';
 }
 
+
+// ── Renderizar tarjetas verticales para móvil ────────────
+function renderItemsMob() {
+  var mob = document.getElementById('itemsMobCards');
+  if(!mob) return;
+  var sym = simbol();
+  var usd = (document.getElementById('cotMoneda')||{value:''}).value === 'USD';
+
+  if(!items.length) {
+    mob.innerHTML = '<div style="text-align:center;color:#94a3b8;padding:24px;font-size:13px;font-style:italic;">Sin ítems — presiona ＋ Agregar ítem</div>';
+    return;
+  }
+
+  mob.innerHTML = items.map(function(it, i) {
+    var m2v    = calcM2(it);
+    var subPEN = calcSubtotalItem(it);
+    var subUSD = calcSubtotalItemUSD(it);
+    var cat    = it.comboCat||'';
+    var serie  = it.comboSerie||'';
+    var cfg    = it.comboConfig||'';
+    var color  = it.comboColor||'';
+    var vid    = it.comboVidrio||'';
+    var gro    = it.comboGrosor||'';
+
+    function mSel(fld, opts, val, dis) {
+      var s = '<select onchange="saveField('+it.id+',\''+fld+'\',this.value)"'
+            + (dis ? ' disabled' : '') + ' >';
+      s += '<option value="">— Selecciona —</option>';
+      opts.forEach(function(o) {
+        s += '<option' + (o===val?' selected':'') + '>' + o + '</option>';
+      });
+      return s + '</select>';
+    }
+    function mInp(fld, val, type2, ph) {
+      return '<input type="' + (type2||'number') + '"'
+           + ' value="' + (val||'') + '"'
+           + ' placeholder="' + (ph||'') + '"'
+           + ' onchange="saveField('+it.id+',\''+fld+'\',this.value)">';
+    }
+
+    var catOpts  = COMBO_CATS;
+    var serOpts  = cat  ? comboSeries(cat) : [];
+    var cfgOpts  = (cat&&serie) ? comboConfigs(cat,serie) : [];
+    var colOpts  = (cat&&serie) ? comboColores(cat,serie,cfg) : [];
+    var vidOpts  = (cat&&serie&&color) ? comboVidrios(cat,serie,cfg,color) : [];
+    var groOpts  = (cat&&serie&&color&&vid) ? comboGrosores(cat,serie,cfg,color,vid) : [];
+
+    return '<div class="imob-card">'
+      // Header
+      + '<div class="imob-hdr">'
+        + '<div>'
+            + '<span class="imob-num">#'+(i+1)+'</span> '
+            + '<span class="imob-tipo">'+(it.tipo||'Ítem')+(cfg?' · '+cfg:'')+'</span>'
+          + '</div>'
+        + '<div class="imob-actions">'
+            + '<button onclick="abrir3D('+it.id+')" style="background:#eff6ff;color:#2563eb;border-color:#bfdbfe;">🔲</button>'
+            + '<button onclick="duplicarItem('+it.id+')" style="background:#fffbeb;color:#b45309;border-color:#fcd34d;">📋</button>'
+            + '<button onclick="eliminarItem('+it.id+')" style="background:#fef2f2;color:#dc2626;border-color:#fca5a5;">✕</button>'
+          + '</div>'
+      + '</div>'
+
+      // Combos en cascada (verticales)
+      + '<div class="imob-field"><label>Categoría</label>'    + mSel('comboCat',   catOpts, cat,  false) + '</div>'
+      + '<div class="imob-field"><label>Serie</label>'        + mSel('comboSerie', serOpts, serie, !cat) + '</div>'
+      + '<div class="imob-field"><label>Configuración</label>'+ mSel('comboConfig',cfgOpts, cfg,  !serie)+ '</div>'
+      + '<div class="imob-field"><label>Color</label>'        + mSel('comboColor', colOpts, color,!serie)+ '</div>'
+      + '<div class="imob-field"><label>Tipo de Vidrio</label>'+ mSel('comboVidrio',vidOpts, vid, !color)+ '</div>'
+      + '<div class="imob-field"><label>Grosor</label>'       + mSel('comboGrosor',groOpts, gro,  !vid)  + '</div>'
+
+      // Medidas
+      + '<div class="imob-row2">'
+          + '<div class="imob-field"><label>Ancho (cm)</label>' + mInp('ancho', it.ancho, 'number','120') + '</div>'
+          + '<div class="imob-field"><label>Alto (cm)</label>'  + mInp('alto',  it.alto,  'number','200') + '</div>'
+        + '</div>'
+
+      // m² calculados
+      + '<div class="imob-m2-box">'
+          + '<span class="imob-m2-lbl">m² calculados</span>'
+          + '<span class="imob-m2-val">' + (m2v>0 ? m2v.toFixed(2)+' m²' : '—') + '</span>'
+        + '</div>'
+
+      // Cantidad y Precio
+      + '<div class="imob-row2">'
+          + '<div class="imob-field"><label>Cantidad</label>'           + mInp('cant',   it.cant||1,     'number','1')    + '</div>'
+          + '<div class="imob-field"><label>P.Unit ('+sym+')</label>'  + mInp('precio', it.precio||0,   'number','0.00') + '</div>'
+        + '</div>'
+
+      // Tipo de cambio (solo USD)
+      + (usd
+          ? '<div class="imob-field"><label>Tipo de Cambio (S/ × USD)</label>'
+              + mInp('tipoCambio', it.tipoCambio||0, 'number','3.70')
+            + '</div>'
+          : '')
+
+      // Subtotales
+      + '<div class="imob-subs">'
+          + '<div class="imob-sub-pen">'
+              + '<div class="imob-sub-label">Subtotal S/</div>'
+              + '<span class="imob-sub-val" style="color:#16a34a;">S/ ' + subPEN.toFixed(2) + '</span>'
+            + '</div>'
+          + '<div class="imob-sub-usd">'
+              + '<div class="imob-sub-label">Subtotal $</div>'
+              + '<span class="imob-sub-val" style="color:#b45309;">'
+                + (subUSD > 0 ? '$ '+subUSD.toFixed(2) : '—')
+              + '</span>'
+            + '</div>'
+        + '</div>'
+
+    + '</div>'; // fin imob-card
+  }).join('');
+}
+
 window.onload=function(){
   initCotizador(); updateBadge(); updateTipoCambioCol(); renderItems();
   var bh=document.getElementById('nav-home');
@@ -4457,6 +4693,7 @@ function formatDireccionRUC(d){
   return [d.tipoVia,d.nombreVia,d.numero?'Nro.'+d.numero:'',d.nombreZona]
     .filter(Boolean).join(' ')||(d.direccion||'');
 }
+
 
 
 
