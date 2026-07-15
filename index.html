@@ -258,8 +258,7 @@ select option{background:#fff;}
 .btn-lg{padding:11px 24px;font-size:14px;}
 
 /* ══ TABLA ÍTEMS ══ */
-.itbl-wrap{width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;}
-.itbl{width:100%;border-collapse:collapse;font-size:12px;min-width:900px;}
+
 .itbl th{
   text-align:left;padding:8px 8px;
   background:#f1f5f9;
@@ -463,6 +462,49 @@ select option{background:#fff;}
   .home-hero{padding:18px 16px;flex-direction:column;text-align:center;}
   #toast{bottom:8px;right:8px;left:8px;max-width:none;}
 }
+
+/* ── Item card en la lista previa ── */
+.item-card{
+  background:#fff;border:1px solid var(--border);border-radius:10px;
+  padding:10px 12px;transition:border-color .15s;position:relative;
+}
+.item-card:hover{border-color:#93c5fd;}
+.item-card-header{
+  display:flex;justify-content:space-between;align-items:flex-start;gap:8px;
+  margin-bottom:6px;
+}
+.item-card-title{
+  font-size:12px;font-weight:700;color:var(--text);line-height:1.3;flex:1;
+}
+.item-card-actions{display:flex;gap:4px;flex-shrink:0;}
+.item-card-actions button{
+  background:none;border:1px solid var(--border);border-radius:6px;
+  padding:3px 7px;font-size:11px;cursor:pointer;transition:all .15s;
+}
+.item-card-actions button:hover{background:#f1f5f9;}
+.item-card-body{
+  display:grid;grid-template-columns:1fr 1fr;gap:3px 12px;font-size:11px;color:var(--muted);
+}
+.item-card-sub{
+  margin-top:7px;padding-top:7px;border-top:1px solid #f1f5f9;
+  display:flex;justify-content:space-between;align-items:center;
+}
+.item-card-sub .lbl{font-size:10px;color:var(--muted);}
+.item-card-sub .val{font-size:14px;font-weight:800;color:var(--accent);}
+/* Formulario vertical responsive */
+@media(max-width:780px){
+  #productoGrid{grid-template-columns:1fr !important;}
+}
+
+
+/* FORZAR: tabla sin scroll horizontal */
+.itbl-wrap{overflow:visible!important;overflow-x:visible!important;}
+.itbl{min-width:0!important;max-width:100%!important;}
+
+.th-p{padding:6px 5px;font-size:8.5px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);border-bottom:2px solid var(--border);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.td-p{padding:5px 4px;border-bottom:1px solid #f1f5f9;vertical-align:middle;overflow:hidden;}
+.td-p input,.td-p select,table input,table select{padding:3px 4px;font-size:10.5px;border-radius:6px;width:100%;min-width:0;box-sizing:border-box;}
+tr:hover .td-p{background:#f8fafc;}
 </style>
 </head>
 <body>
@@ -589,7 +631,7 @@ select option{background:#fff;}
           <div class="field"><label>Fecha emisión</label><input id="cotFecha" type="date"></div>
           <div class="field"><label>Válida hasta</label><input id="cotValidez" type="date"></div>
           <div class="field"><label>Moneda</label>
-            <select id="cotMoneda" onchange="recalcular()">
+            <select id="cotMoneda" onchange="recalcular();updateTipoCambioCol();ifUpdateSym();">
               <option value="PEN">PEN — Sol peruano</option>
               <option value="USD">USD — Dólar</option>
               <option value="VES">VES — Bolívar</option>
@@ -622,45 +664,73 @@ select option{background:#fff;}
     <!-- Productos -->
     <div class="section">
       <div class="section-label">🪟 Productos / Servicios</div>
-      <div class="card" style="padding:12px;">
-        <div class="itbl-wrap">
-          <table class="itbl">
-            <thead>
-              <tr>
-                <th style="width:26px;text-align:center;">#</th>
-                <th style="min-width:130px;">Descripción</th>
-                <th style="min-width:125px;">Categoría</th>
-                <th style="min-width:125px;">Serie</th>
-                <th style="min-width:135px;">Configuración</th>
-                <th style="min-width:105px;">Color</th>
-                <th style="min-width:95px;">Vidrio</th>
-                <th style="min-width:65px;">Grosor</th>
-                <th style="width:72px;">Ancho(cm)</th>
-                <th style="width:72px;">Alto(cm)</th>
-                <th style="width:48px;text-align:center;">m²</th>
-                <th style="width:50px;text-align:center;">Cant.</th>
-                <th style="width:88px;">P.Unit.</th>
-                <th style="width:88px;text-align:right;">Subtotal</th>
-                <th style="width:38px;text-align:center;">3D</th>
-                <th style="width:32px;text-align:center;" title="Duplicar">📋</th>
-                <th style="width:34px;text-align:center;" title="Unir">🔗</th>
-                <th style="width:30px;text-align:center;">✕</th>
-              </tr>
-            </thead>
-            <tbody id="itemsBody"></tbody>
-          </table>
-        </div>
-        <div class="gap8 mt12">
+      <div class="card" style="padding:0;overflow:hidden;">
+
+        <!-- Acciones -->
+        <div style="padding:8px 12px;background:#f8fafc;border-bottom:1px solid var(--border);display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
           <button class="btn btn-o btn-sm" onclick="agregarItem()">＋ Agregar ítem</button>
-          <button class="btn btn-sm" onclick="togglePreviewInline()" style="background:#f0fdf4;color:#16a34a;border:1px solid #86efac;font-weight:600;">👁 Vista previa</button>
-          <button class="btn btn-sm" onclick="abrirUnir3D()" style="background:#f0fdf4;color:#16a34a;border:1px solid #86efac;font-weight:600;">🔗 Unir en 3D</button>
-          <button class="btn btn-g btn-sm" onclick="limpiarItems()">🗑 Limpiar</button>
+          <button class="btn btn-g btn-sm" onclick="limpiarItems()" style="color:#dc2626;border-color:#fca5a5;">🗑 Limpiar</button>
+          <button class="btn btn-sm" onclick="abrirUnir3D()" style="background:#f0fdf4;color:#16a34a;border:1px solid #86efac;">🔗 Unir 3D</button>
+          <button class="btn btn-sm" onclick="togglePreviewInline()" style="background:#eff6ff;color:#2563eb;border:1px solid #bfdbfe;">👁 Vista previa</button>
+          <div style="margin-left:auto;font-size:11px;color:var(--muted);display:flex;gap:14px;align-items:center;">
+            <span><strong id="itemCountBadge" style="color:var(--text);">0</strong> ítem(s)</span>
+            <span>Sub: <strong id="itemsSubtotalTop" style="color:var(--hi);">S/ 0.00</strong></span>
+          </div>
         </div>
+
+        <!-- Tabla -->
+        <div style="width:100%;overflow:hidden;">
+        <table style="width:100%;border-collapse:collapse;table-layout:fixed;font-size:11px;">
+          <colgroup>
+            <col style="width:3%">   <!-- # -->
+            <col style="width:10%">  <!-- Categoría -->
+            <col style="width:9%">   <!-- Serie -->
+            <col style="width:10%">  <!-- Config -->
+            <col style="width:7%">   <!-- Color -->
+            <col style="width:7%">   <!-- Vidrio -->
+            <col style="width:5%">   <!-- Grosor -->
+            <col style="width:5%">   <!-- Ancho -->
+            <col style="width:5%">   <!-- Alto -->
+            <col style="width:4%">   <!-- m² -->
+            <col style="width:4%">   <!-- Cant -->
+            <col style="width:7%">   <!-- Precio -->
+            <col id="colTC" style="width:0%"> <!-- T.C. -->
+            <col style="width:7%">   <!-- Subtotal -->
+            <col style="width:4%">   <!-- 3D -->
+            <col style="width:4%">   <!-- Dup -->
+            <col style="width:4%">   <!-- Del -->
+          </colgroup>
+          <thead>
+            <tr style="background:#f1f5f9;">
+              <th class="th-p">#</th>
+              <th class="th-p">Categoría</th>
+              <th class="th-p">Serie</th>
+              <th class="th-p">Config.</th>
+              <th class="th-p">Color</th>
+              <th class="th-p">Vidrio</th>
+              <th class="th-p">Grosor</th>
+              <th class="th-p" style="text-align:center;">Ancho<br><small>cm</small></th>
+              <th class="th-p" style="text-align:center;">Alto<br><small>cm</small></th>
+              <th class="th-p" style="text-align:center;">m²</th>
+              <th class="th-p" style="text-align:center;">Cant.</th>
+              <th class="th-p" style="text-align:right;">P.Unit.</th>
+              <th class="th-p" id="thTipoCambio" style="text-align:center;display:none;">T.C.<br><small>S/</small></th>
+              <th class="th-p" style="text-align:right;">Subtotal</th>
+              <th class="th-p" style="text-align:center;">3D</th>
+              <th class="th-p" style="text-align:center;">📋</th>
+              <th class="th-p" style="text-align:center;">✕</th>
+            </tr>
+          </thead>
+          <tbody id="itemsBody">
+            <tr><td colspan="17" style="text-align:center;color:#94a3b8;padding:18px;font-style:italic;">Sin ítems — presiona ＋ Agregar ítem</td></tr>
+          </tbody>
+        </table>
+        </div>
+
       </div>
     </div>
 
-
-    <!-- ══ VISTA PRELIMINAR ══ -->
+<!-- ══ VISTA PRELIMINAR ══ -->
     <div class="section" id="previewSection" style="display:none;">
       <div class="section-label">👁 Vista preliminar de cotización
         <button class="btn btn-g btn-sm" style="margin-left:auto;font-size:11px;"
@@ -1124,180 +1194,102 @@ function matColor(m) {
 
 
 function renderItems() {
-  const tbody = document.getElementById('itemsBody');
-  if(!items.length) {
-    tbody.innerHTML = '<tr class="empty-row"><td colspan="18" style="text-align:center;color:var(--muted);padding:18px;font-style:italic;">Sin ítems — haz clic en \"＋ Agregar ítem\"</td></tr>';
-    recalcular();
-    return;
-  }
-  // Solo re-renderizar filas que no existen todavía
-  const existingIds = new Set([...tbody.querySelectorAll('tr[data-id]')].map(r=>+r.dataset.id));
-  // Eliminar filas que ya no están en items
-  tbody.querySelectorAll('tr[data-id]').forEach(function(row){
-    if(!items.find(function(i){return i.id===+row.dataset.id;})) row.remove();
+  var tbody = document.getElementById('itemsBody');
+  if(!tbody) return;
+  tbody.innerHTML = items.length
+    ? items.map(function(it,i){ return '<tr data-id="'+it.id+'">'+buildRowHTML(it,i)+'</tr>'; }).join('')
+    : '<tr><td colspan="17" style="text-align:center;color:#94a3b8;padding:18px;font-style:italic;">Sin ítems — presiona ＋ Agregar ítem</td></tr>';
+  // Badge y subtotal
+  var badge = document.getElementById('itemCountBadge');
+  if(badge) badge.textContent = items.length;
+  var m = document.getElementById('cotMoneda');
+  var sym = m?(SIM[m.value]||'S/'):'S/';
+  var tot = items.reduce(function(s,it){return s+calcSubtotalItem(it);},0);
+  var el = document.getElementById('itemsSubtotalTop');
+  if(el) el.textContent = sym+' '+tot.toFixed(2);
+  // T.C. visibilidad
+  var usd = m && m.value==='USD';
+  var th = document.getElementById('thTipoCambio');
+  if(th) th.style.display = usd?'table-cell':'none';
+  var col = document.getElementById('colTC');
+  if(col) col.style.width = usd?'5%':'0%';
+  items.forEach(function(it){
+    var td=document.getElementById('tc_'+it.id);
+    if(td) td.style.display=usd?'table-cell':'none';
   });
-  // Agregar filas nuevas / actualizar celdas calculadas
-  items.forEach(function(it, idx){
-    var existing = tbody.querySelector('tr[data-id="'+it.id+'"]');
-    if(!existing) {
-      // Crear fila nueva
-      var mc = matColor(it.material||'');
-      var tr = document.createElement('tr');
-      tr.dataset.id = it.id;
-      tr.innerHTML = buildRowHTML(it, idx);
-      tbody.appendChild(tr);
-    } else {
-      // Solo actualizar número de fila, m² y subtotal (sin tocar inputs)
-      var numCell = existing.querySelector('.cell-num');
-      if(numCell) numCell.textContent = idx+1;
-      refreshCalcCells(existing, it);
-    }
-  });
-  // Re-ordenar si hace falta
-  items.forEach(function(it, idx){
-    var row = tbody.querySelector('tr[data-id="'+it.id+'"]');
-    if(row && tbody.children[idx] !== row) tbody.appendChild(row);
-  });
-  recalcular();
 }
 
 function buildRowHTML(it, idx) {
-  var mc = matColor(it.material||'');
+  var m  = document.getElementById('cotMoneda');
+  var esUSD = m && m.value==='USD';
+  var sym   = m ? (SIM[m.value]||'S/') : 'S/';
+  var m2v   = calcM2(it);
+  var sub   = calcSubtotalItem(it);
+  var cat=it.comboCat||'', serie=it.comboSerie||'';
+  var cfg=it.comboConfig||'', color=it.comboColor||'';
+  var vid=it.comboVidrio||'', gro=it.comboGrosor||'';
 
-  // ── Selectores de Combo ──────────────────────────────
-  // Cat → Serie → Config → Color → Vidrio → Grosor
-  var cat    = it.comboCat    || '';
-  var serie  = it.comboSerie  || '';
-  var config = it.comboConfig || '';
-  var color  = it.comboColor  || '';
-  var vidrio = it.comboVidrio || '';
-  var grosor = it.comboGrosor || '';
-
-  // Opciones para cada selector en cascada
-  function opts(arr, val){
-    return arr.map(function(v){
-      return '<option'+(v===val?' selected':'')+'>'+v+'</option>';
-    }).join('');
+  function mkSel(elId, opts, val, onch, dis) {
+    var s='<select id="'+elId+'" onchange="'+onch+'" style="font-size:10px;width:100%;padding:3px 2px;"'+(dis?' disabled':'')+' >';
+    s+='<option value="">—</option>';
+    opts.forEach(function(o){s+='<option'+(o===val?' selected':'')+'>'+o+'</option>';});
+    return s+'</select>';
   }
+  var td='class="td-p"';
 
-  var catOpts    = opts(COMBO_CATS, cat);
-  var serieOpts  = cat   ? opts(comboSeries(cat), serie) : '<option value="">—</option>';
-  var configOpts = serie ? opts(comboConfigs(cat,serie), config) : '<option value="">—</option>';
-  var colorOpts  = config!==''&&serie ? opts(comboColores(cat,serie,config), color)
-                   : serie ? opts(comboColores(cat,serie,'-'), color) : '<option value="">—</option>';
-  var vidrioOpts = color ? opts(comboVidrios(cat,serie,config,color), vidrio) : '<option value="">—</option>';
-  var grosorOpts = vidrio? opts(comboGrosores(cat,serie,config,color,vidrio), grosor) : '<option value="">—</option>';
-
-  // Descripción auto-generada
-  var autoDesc = [serie,config,color,vidrio,grosor].filter(Boolean).join(' · ');
-
-  // ── HTML de la fila ──────────────────────────────────
   return (
-    // # (número)
-    '<td class="cell-num" style="color:var(--muted);font-size:11px;text-align:center;">'+(idx+1)+'</td>'+
+    '<td '+td+' style="text-align:center;color:#94a3b8;font-size:10px;">'+(idx+1)+'</td>'+
 
-    // Descripción (auto)
-    '<td style="min-width:140px;">'+
-      '<input type="text" value="'+escH(it.desc||autoDesc)+'" placeholder="Auto o manual"'+
-      ' style="font-size:11px;" onchange="saveField('+it.id+',\'desc\',this.value)">'+
-    '</td>'+
+    '<td '+td+'>'+mkSel('sc_cat_'+it.id, COMBO_CATS, cat,
+      'comboSetCat('+it.id+',this.value)', false)+'</td>'+
 
-    // Categoría (reemplaza TIPO)
-    '<td style="min-width:130px;">'+
-      '<select style="font-size:11px;min-width:125px;" onchange="comboSetCat('+it.id+',this.value)">'+
-        '<option value="">— Categoría —</option>'+catOpts+
-      '</select>'+
-    '</td>'+
+    '<td '+td+'>'+mkSel('sel_serie_'+it.id, cat?comboSeries(cat):[], serie,
+      'comboSetSerie('+it.id+',this.value)', !cat)+'</td>'+
 
-    // Serie
-    '<td style="min-width:130px;">'+
-      '<select id="sel_serie_'+it.id+'" style="font-size:11px;min-width:125px;" onchange="comboSetSerie('+it.id+',this.value)">'+
-        '<option value="">— Serie —</option>'+serieOpts+
-      '</select>'+
-    '</td>'+
+    '<td '+td+'>'+mkSel('sel_config_'+it.id, (cat&&serie)?comboConfigs(cat,serie):[], cfg,
+      'comboSetConfig('+it.id+',this.value)', !serie)+
+      '</td>'+
 
-    // Configuración (cuerpos/hojas)
-    '<td style="min-width:140px;">'+
-      '<select id="sel_config_'+it.id+'" style="font-size:11px;min-width:135px;" onchange="comboSetConfig('+it.id+',this.value)">'+
-        '<option value="">— Config. —</option>'+configOpts+
-      '</select>'+
-    '</td>'+
+    '<td '+td+'>'+mkSel('sel_color_'+it.id,
+      (cat&&serie)?comboColores(cat,serie,cfg):[], color,
+      'comboSetColor('+it.id+',this.value)', !serie)+'</td>'+
 
-    // Color
-    '<td style="min-width:110px;">'+
-      '<select id="sel_color_'+it.id+'" style="font-size:11px;min-width:105px;" onchange="comboSetColor('+it.id+',this.value)">'+
-        '<option value="">— Color —</option>'+colorOpts+
-      '</select>'+
-    '</td>'+
+    '<td '+td+'>'+mkSel('sel_vidrio_'+it.id,
+      (cat&&serie&&color)?comboVidrios(cat,serie,cfg,color):[], vid,
+      'comboSetVidrio('+it.id+',this.value)', !color)+'</td>'+
 
-    // Tipo de Vidrio
-    '<td style="min-width:100px;">'+
-      '<select id="sel_vidrio_'+it.id+'" style="font-size:11px;min-width:95px;" onchange="comboSetVidrio('+it.id+',this.value)">'+
-        '<option value="">— Vidrio —</option>'+vidrioOpts+
-      '</select>'+
-    '</td>'+
+    '<td '+td+'>'+mkSel('sel_grosor_'+it.id,
+      (cat&&serie&&color&&vid)?comboGrosores(cat,serie,cfg,color,vid):[], gro,
+      'comboSetGrosor('+it.id+',this.value)', !vid)+'</td>'+
 
-    // Grosor
-    '<td style="min-width:70px;">'+
-      '<select id="sel_grosor_'+it.id+'" style="font-size:11px;min-width:65px;" onchange="comboSetGrosor('+it.id+',this.value)">'+
-        '<option value="">—</option>'+grosorOpts+
-      '</select>'+
-    '</td>'+
+    '<td '+td+'><input type="number" value="'+escH(it.ancho||'')+'" placeholder="cm" min="0" step="1"'+
+      ' style="text-align:center;" onchange="saveField('+it.id+',\'ancho\',this.value)"></td>'+
 
-    // Ancho
-    '<td><input type="number" value="'+escH(it.ancho||'')+'" placeholder="cm" min="0" step="1"'+
-      ' style="font-size:12px;width:70px;" title="Ancho en centímetros" onchange="saveField('+it.id+',\'ancho\',this.value)"></td>'+
+    '<td '+td+'><input type="number" value="'+escH(it.alto||'')+'" placeholder="cm" min="0" step="1"'+
+      ' style="text-align:center;" onchange="saveField('+it.id+',\'alto\',this.value)"></td>'+
 
-    // Alto
-    '<td><input type="number" value="'+escH(it.alto||'')+'" placeholder="cm" min="0" step="1"'+
-      ' style="font-size:12px;width:70px;" title="Alto en centímetros" onchange="saveField('+it.id+',\'alto\',this.value)"></td>'+
+    '<td '+td+' style="text-align:center;color:var(--accent);font-weight:700;">'+(m2v>0?m2v.toFixed(2):'—')+'</td>'+
 
-    // m²
-    '<td class="cell-m2" style="color:var(--accent);font-weight:600;font-size:12px;text-align:center;">'+
-      calcM2(it).toFixed(2)+
-    '</td>'+
+    '<td '+td+'><input type="number" value="'+escH(it.cant||1)+'" min="1" step="1"'+
+      ' style="text-align:center;" onchange="saveField('+it.id+',\'cant\',this.value)"></td>'+
 
-    // Cantidad
-    '<td><input type="number" value="'+escH(it.cant||1)+'" min="1" step="1"'+
-      ' style="font-size:12px;width:52px;" onchange="saveField('+it.id+',\'cant\',this.value)"></td>'+
+    '<td '+td+'><input type="number" value="'+escH(it.precio||0)+'" min="0" step="0.01" placeholder="0.00"'+
+      ' style="text-align:right;" onchange="saveField('+it.id+',\'precio\',this.value)"></td>'+
 
+    '<td id="tc_'+it.id+'" '+td+' style="display:'+(esUSD?'table-cell':'none')+';">'+
+      '<input type="number" value="'+escH(it.tipoCambio||0)+'" min="0" step="0.01" placeholder="3.70"'+
+      ' style="text-align:center;" onchange="saveField('+it.id+',\'tipoCambio\',this.value)"></td>'+
 
+    '<td '+td+' style="text-align:right;font-weight:700;color:var(--hi);white-space:nowrap;">'+sym+' '+sub.toFixed(2)+'</td>'+
 
-    // Precio unitario
-    '<td><input type="number" value="'+escH(it.precio||0)+'" min="0" step="0.01" placeholder="0.00"'+
-      ' style="font-size:12px;width:88px;" onchange="saveField('+it.id+',\'precio\',this.value)"></td>'+
+    '<td '+td+' style="text-align:center;"><button onclick="abrir3D('+it.id+')"'+
+      ' style="background:#eff6ff;color:#2563eb;border:1px solid #bfdbfe;border-radius:6px;padding:2px 5px;font-size:10px;cursor:pointer;">🔲</button></td>'+
 
-    // Subtotal
-    '<td class="cell-sub" style="color:var(--hi);font-weight:700;font-size:12px;text-align:right;white-space:nowrap;">'+
-      fmt(calcSubtotalItem(it))+
-    '</td>'+
+    '<td '+td+' style="text-align:center;"><button onclick="duplicarItem('+it.id+')"'+
+      ' style="background:#fffbeb;color:#b45309;border:1px solid #fcd34d;border-radius:6px;padding:2px 5px;font-size:10px;cursor:pointer;" title="Duplicar">📋</button></td>'+
 
-    // 3D
-    '<td style="text-align:center;">'+
-      '<button class="btn btn-sm" title="Vista 3D"'+
-      ' style="background:#eff6ff;color:#2563eb;border:1px solid #bfdbfe;font-size:10px;padding:4px 7px;"'+
-      ' onclick="abrir3D('+it.id+')">🔲</button>'+
-    '</td>'+
-
-    // Duplicar
-    '<td style="text-align:center;">'+
-      '<button class="btn btn-sm" title="Duplicar ítem"'+
-      ' style="background:#fffbeb;color:#b45309;border:1px solid #fcd34d;font-size:10px;padding:4px 7px;"'+
-      ' onclick="duplicarItem('+it.id+')">📋</button>'+
-    '</td>'+
-
-    // Unir
-    '<td style="text-align:center;">'+
-      '<button class="btn btn-sm" id="btnUnir_'+it.id+'"'+
-      ' style="background:#f0fdf4;color:#16a34a;border:1px solid #86efac;font-size:10px;padding:4px 7px;"'+
-      ' onclick="toggleUnir('+it.id+')" title="Unir 3D">🔗</button>'+
-    '</td>'+
-
-    // Eliminar
-    '<td style="text-align:center;">'+
-      '<button class="btn btn-sm btn-d" onclick="eliminarItem('+it.id+')"'+
-      ' style="padding:4px 7px;font-size:11px;" title="Eliminar">✕</button>'+
-    '</td>'
+    '<td '+td+' style="text-align:center;"><button onclick="eliminarItem('+it.id+')"'+
+      ' style="background:#fef2f2;color:#dc2626;border:1px solid #fca5a5;border-radius:6px;padding:2px 5px;font-size:10px;cursor:pointer;">✕</button></td>'
   );
 }
 
@@ -1318,6 +1310,7 @@ function saveField(id, field, val) {
   var row = document.querySelector('tr[data-id="'+id+'"]');
   if(row) refreshCalcCells(row, it);
   recalcular();
+  renderItems(); recalcular();
 }
 
 // Guardar material + actualizar color del select
@@ -2124,14 +2117,20 @@ function initCotizador() {
   document.getElementById('cotFecha').value = hoy.toISOString().split('T')[0];
   document.getElementById('cotValidez').value = validez.toISOString().split('T')[0];
   document.getElementById('cotNum').value = 'COT-' + hoy.getFullYear() + '-' + String(Math.floor(Math.random()*900)+100);
-  agregarItem(); agregarItem(); agregarItem();
+  agregarItem(); // Solo 1 ítem al inicio
 };
 
 // ─── AGREGAR ITEM ───
 function agregarItem() {
   itemCounter++;
-  items.push({ id:itemCounter, desc:'', tipo:'Ventana', material:'Vidrio claro 6mm', ancho:'', alto:'', cuerpos:1, cant:1, precio:0, comboCat:'', comboSerie:'', comboConfig:'', comboColor:'', comboVidrio:'', comboGrosor:'' });
-  renderItems();
+  items.push({id:itemCounter,desc:'',tipo:'Ventana',material:'Vidrio claro 6mm',
+    ancho:'',alto:'',cuerpos:1,cant:1,precio:0,tipoCambio:0,
+    comboCat:'',comboSerie:'',comboConfig:'',comboColor:'',comboVidrio:'',comboGrosor:''});
+  renderItems(); recalcular();
+  setTimeout(function(){
+    var rows=document.querySelectorAll('#itemsBody tr');
+    if(rows.length) rows[rows.length-1].scrollIntoView({behavior:'smooth',block:'nearest'});
+  },80);
 }
 
 
@@ -2143,7 +2142,7 @@ function duplicarItem(id) {
   // Insertar justo después del original
   var idx2 = items.findIndex(function(i){ return i.id===id; });
   items.splice(idx2+1, 0, copia);
-  renderItems();
+  renderItems(); recalcular();
   toast('📋','Ítem duplicado');
 }
 function limpiarItems() {
@@ -2163,13 +2162,22 @@ function calcM2(it) {
   return (a / 100) * (h / 100);
 }
 function calcSubtotalItem(it) {
+  // Si hay tipo de cambio, precio está en USD → convertir a PEN
+  var precio = parseFloat(it.precio)||0;
+  var tc = parseFloat(it.tipoCambio)||0;
+  if(tc > 0) precio = precio * tc; // precio en PEN = USD × T.C.
   return calcM2(it) > 0
-    ? calcM2(it) * (parseFloat(it.cant)||1) * (parseFloat(it.precio)||0)
-    : (parseFloat(it.cant)||1) * (parseFloat(it.precio)||0);
+    ? calcM2(it) * (parseFloat(it.cant)||1) * precio
+    : (parseFloat(it.cant)||1) * precio;
 }
 
 // ─── RECALCULAR ───
 function recalcular() {
+  // Sincronizar visibilidad columna T.C.
+  var _m = document.getElementById('cotMoneda');
+  var _usd = _m && _m.value === 'USD';
+  var _th = document.getElementById('thTipoCambio');
+  if(_th) _th.style.display = _usd ? 'table-cell' : 'none';
   const subtotal = items.reduce((s,it) => s + calcSubtotalItem(it), 0);
   const descPct = parseFloat(document.getElementById('descPct').value)||0;
   const ivaPct  = parseFloat(document.getElementById('ivaPct').value)||0;
@@ -3284,7 +3292,7 @@ function updateBadge(){
 }
 
 window.onload=function(){
-  initCotizador(); updateBadge();
+  initCotizador(); updateBadge(); updateTipoCambioCol(); renderItems();
   var bh=document.getElementById('nav-home');
   if(bh) bh.classList.add('active');
   document.getElementById('delConfBtn').addEventListener('click',execDelete);
@@ -4512,6 +4520,323 @@ function refreshPreviewIfOpen() {
   var sec = document.getElementById('previewSection');
   if(sec && sec.style.display !== 'none') renderPreviewInline();
 }
+
+
+
+
+
+// ── Mostrar/ocultar columna Tipo de Cambio según moneda ──
+function updateTipoCambioCol() {
+  var moneda = document.getElementById('cotMoneda');
+  var esUSD  = moneda && moneda.value === 'USD';
+  // Mostrar/ocultar th
+  var th = document.getElementById('thTipoCambio');
+  if(th) th.style.display = esUSD ? 'table-cell' : 'none';
+  // Mostrar/ocultar todas las celdas tc_id
+  items.forEach(function(it){
+    var td = document.getElementById('tc_'+it.id);
+    if(td) td.style.display = esUSD ? 'table-cell' : 'none';
+  });
+  // Re-renderizar para actualizar celdas (recalcula subtotales)
+  if(esUSD) {
+    // Si hay filas ya creadas, solo toggle sin re-render
+    var tbody = document.getElementById('itemsBody');
+    if(tbody && tbody.children.length > 0) {
+      // Ya existe DOM — solo recalcular
+      items.forEach(function(it){
+        var row = tbody.querySelector('tr[data-id="'+it.id+'"]');
+        if(row) refreshCalcCells(row, it);
+      });
+    }
+  }
+  recalcular();
+}
+
+
+
+
+// ═══════════════════════════════════════════════════════════
+//  FORMULARIO VERTICAL DE ÍTEM
+// ═══════════════════════════════════════════════════════════
+var _ifEdit = null; // null = nuevo, id = editando
+
+// Poblar select de categorías al iniciar
+function ifInit() {
+  var sel = document.getElementById('if_cat');
+  if(!sel) return;
+  sel.innerHTML = '<option value="">— Categoría —</option>';
+  COMBO_CATS.forEach(function(c){
+    sel.innerHTML += '<option>'+c+'</option>';
+  });
+  // Sincronizar símbolo de moneda
+  ifUpdateSym();
+}
+
+function ifUpdateSym() {
+  var m = document.getElementById('cotMoneda');
+  var sym = m ? (SIM[m.value]||'S/') : 'S/';
+  var el = document.getElementById('if_sym');
+  if(el) el.textContent = sym;
+  // Mostrar/ocultar tipo de cambio
+  var tcWrap = document.getElementById('if_tc_wrap');
+  if(tcWrap) tcWrap.style.display = (m && m.value==='USD') ? 'block' : 'none';
+}
+
+// Cascada Cat → Serie → Config → Color → Vidrio → Grosor
+function ifSetCat(val) {
+  _ifPatch('comboCat', val);
+  _ifPatch('comboSerie',''); _ifPatch('comboConfig','');
+  _ifPatch('comboColor',''); _ifPatch('comboVidrio',''); _ifPatch('comboGrosor','');
+  _ifFill('if_serie',  comboSeries(val), '— Serie —', false);
+  _ifFill('if_config', [], '— Config. —', true);
+  _ifFill('if_color',  [], '— Color —',  true);
+  _ifFill('if_vidrio', [], '— Vidrio —', true);
+  _ifFill('if_grosor', [], '— Grosor —', true);
+  // Tipo
+  var tipo = CAT_TO_TIPO[val] || 'Ventana';
+  _ifPatch('tipo', tipo);
+}
+function ifSetSerie(val) {
+  var cat = document.getElementById('if_cat').value;
+  _ifPatch('comboSerie', val);
+  _ifPatch('comboConfig',''); _ifPatch('comboColor','');
+  _ifPatch('comboVidrio',''); _ifPatch('comboGrosor','');
+  _ifFill('if_config', comboConfigs(cat,val), '— Config. —', false);
+  _ifFill('if_color',  [], '— Color —',  true);
+  _ifFill('if_vidrio', [], '— Vidrio —', true);
+  _ifFill('if_grosor', [], '— Grosor —', true);
+}
+function ifSetConfig(val) {
+  var cat   = document.getElementById('if_cat').value;
+  var serie = document.getElementById('if_serie').value;
+  _ifPatch('comboConfig', val);
+  _ifPatch('comboColor',''); _ifPatch('comboVidrio',''); _ifPatch('comboGrosor','');
+  // Calcular cuerpos
+  var cuerpos = configToCuerpos(val);
+  _ifPatch('cuerpos', cuerpos);
+  _ifFill('if_color',  comboColores(cat,serie,val), '— Color —', false);
+  _ifFill('if_vidrio', [], '— Vidrio —', true);
+  _ifFill('if_grosor', [], '— Grosor —', true);
+}
+function ifSetColor(val) {
+  var cat   = document.getElementById('if_cat').value;
+  var serie = document.getElementById('if_serie').value;
+  var cfg   = document.getElementById('if_config').value;
+  _ifPatch('comboColor', val);
+  _ifPatch('comboVidrio',''); _ifPatch('comboGrosor','');
+  _ifFill('if_vidrio', comboVidrios(cat,serie,cfg,val), '— Vidrio —', false);
+  _ifFill('if_grosor', [], '— Grosor —', true);
+}
+function ifSetVidrio(val) {
+  var cat   = document.getElementById('if_cat').value;
+  var serie = document.getElementById('if_serie').value;
+  var cfg   = document.getElementById('if_config').value;
+  var color = document.getElementById('if_color').value;
+  _ifPatch('comboVidrio', val);
+  _ifPatch('comboGrosor','');
+  _ifFill('if_grosor', comboGrosores(cat,serie,cfg,color,val), '— Grosor —', false);
+}
+function ifSetGrosor(val) {
+  _ifPatch('comboGrosor', val);
+  // Autocompletar material
+  var vidrio = document.getElementById('if_vidrio').value;
+  var mat = comboToMaterial(vidrio, val);
+  _ifPatch('material', mat);
+  // Autocompletar descripción
+  var it = _ifGetCurrent();
+  if(it) {
+    var desc = [it.comboSerie,it.comboConfig,it.comboColor,it.comboVidrio,val].filter(Boolean).join(' · ');
+    _ifPatch('desc', desc);
+    var dEl = document.getElementById('if_desc');
+    if(dEl && !dEl.value) dEl.value = desc;
+  }
+  ifCalcM2();
+}
+
+// Rellenar un select con opciones
+function _ifFill(id, opts, placeholder, disabled) {
+  var sel = document.getElementById(id);
+  if(!sel) return;
+  sel.disabled = disabled || opts.length===0;
+  sel.innerHTML = '<option value="">'+placeholder+'</option>';
+  opts.forEach(function(o){ sel.innerHTML += '<option>'+o+'</option>'; });
+}
+
+// Ítem temporal en edición
+var _ifItem = null;
+function _ifPatch(field, val) {
+  if(!_ifItem) _ifItem = {
+    id:0, desc:'', tipo:'Ventana', material:'Vidrio claro 6mm',
+    ancho:'', alto:'', cuerpos:1, cant:1, precio:0, tipoCambio:0,
+    comboCat:'', comboSerie:'', comboConfig:'', comboColor:'', comboVidrio:'', comboGrosor:''
+  };
+  _ifItem[field] = val;
+}
+function _ifGetCurrent() { return _ifItem; }
+
+// Calcular m² y subtotal en el formulario
+function ifCalcM2() {
+  var a   = parseFloat(document.getElementById('if_ancho').value)||0;
+  var h   = parseFloat(document.getElementById('if_alto').value)||0;
+  var m2  = (a/100)*(h/100);
+  var cant= parseFloat(document.getElementById('if_cant').value)||1;
+  var pr  = parseFloat(document.getElementById('if_precio').value)||0;
+  var tc  = parseFloat(document.getElementById('if_tc').value)||0;
+  if(tc>0) pr = pr*tc;
+  var sub = m2>0 ? m2*cant*pr : cant*pr;
+
+  var m2El  = document.getElementById('if_m2');
+  var subEl = document.getElementById('if_sub');
+  var m  = document.getElementById('cotMoneda');
+  var sym= m ? (SIM[m.value]||'S/') : 'S/';
+  if(m2El)  m2El.textContent  = m2.toFixed(2)+' m²';
+  if(subEl) subEl.textContent = sym+' '+sub.toFixed(2);
+
+  if(_ifItem) {
+    _ifItem.ancho      = document.getElementById('if_ancho').value;
+    _ifItem.alto       = document.getElementById('if_alto').value;
+    _ifItem.cant       = cant;
+    _ifItem.precio     = parseFloat(document.getElementById('if_precio').value)||0;
+    _ifItem.tipoCambio = parseFloat(document.getElementById('if_tc').value)||0;
+    _ifItem.desc       = document.getElementById('if_desc').value;
+  }
+}
+
+// Guardar ítem (agregar o actualizar)
+function itemFormGuardar() {
+  if(!_ifItem) _ifItem = {};
+  // Leer todos los campos del formulario
+  _ifItem.desc       = document.getElementById('if_desc').value;
+  _ifItem.ancho      = document.getElementById('if_ancho').value;
+  _ifItem.alto       = document.getElementById('if_alto').value;
+  _ifItem.cant       = parseFloat(document.getElementById('if_cant').value)||1;
+  _ifItem.precio     = parseFloat(document.getElementById('if_precio').value)||0;
+  _ifItem.tipoCambio = parseFloat(document.getElementById('if_tc').value)||0;
+  _ifItem.comboCat   = document.getElementById('if_cat').value;
+  _ifItem.comboSerie = document.getElementById('if_serie').value;
+  _ifItem.comboConfig= document.getElementById('if_config').value;
+  _ifItem.comboColor = document.getElementById('if_color').value;
+  _ifItem.comboVidrio= document.getElementById('if_vidrio').value;
+  _ifItem.comboGrosor= document.getElementById('if_grosor').value;
+  _ifItem.cuerpos    = configToCuerpos(_ifItem.comboConfig||'');
+  if(!_ifItem.tipo)  _ifItem.tipo = CAT_TO_TIPO[_ifItem.comboCat]||'Ventana';
+
+  if(!_ifItem.comboCat && !_ifItem.comboSerie) {
+    toast('⚠️','Selecciona al menos categoría y serie');
+    return;
+  }
+
+  if(_ifEdit !== null) {
+    // Actualizar ítem existente
+    var idx2 = items.findIndex(function(i){return i.id===_ifEdit;});
+    if(idx2>=0) { _ifItem.id = _ifEdit; items[idx2] = _ifItem; }
+  } else {
+    // Nuevo ítem
+    itemCounter++;
+    _ifItem.id = itemCounter;
+    items.push(_ifItem);
+  }
+
+  // Reset formulario
+  itemFormReset();
+  renderItems();
+  recalcular();
+  toast(_ifEdit?'💾':'✅', _ifEdit?'Ítem actualizado':'Ítem agregado');
+  _ifEdit = null;
+}
+
+// Resetear formulario al estado inicial
+function itemFormReset() {
+  _ifItem = null; _ifEdit = null;
+  ['if_cat','if_serie','if_config','if_color','if_vidrio','if_grosor'].forEach(function(id){
+    var el = document.getElementById(id);
+    if(el){ el.value=''; if(id!=='if_cat') el.disabled=true; }
+  });
+  ['if_desc','if_ancho','if_alto'].forEach(function(id){
+    var el = document.getElementById(id); if(el) el.value='';
+  });
+  var cantEl = document.getElementById('if_cant'); if(cantEl) cantEl.value='1';
+  var prEl   = document.getElementById('if_precio'); if(prEl) prEl.value='';
+  var tcEl   = document.getElementById('if_tc'); if(tcEl) tcEl.value='';
+  var m2El   = document.getElementById('if_m2'); if(m2El)  m2El.textContent='0.00 m²';
+  var subEl  = document.getElementById('if_sub'); if(subEl) subEl.textContent='S/ 0.00';
+  var title  = document.getElementById('itemFormTitle'); if(title) title.textContent='Nuevo ítem';
+  var btnG   = document.getElementById('btnGuardarItem'); if(btnG) btnG.textContent='＋ Agregar';
+  var btnC   = document.getElementById('btnCancelarItem'); if(btnC) btnC.style.display='none';
+}
+
+function itemFormCancelar() { itemFormReset(); }
+
+// Editar ítem existente desde la lista
+function itemFormEdit(id) {
+  var it = items.find(function(i){return i.id===id;});
+  if(!it) return;
+  _ifEdit = id;
+  _ifItem = Object.assign({}, it);
+
+  // Poblar formulario
+  var setV = function(elId, val){
+    var el = document.getElementById(elId);
+    if(el){ el.value = val||''; el.disabled=false; }
+  };
+  setV('if_cat',    it.comboCat);
+  // Recargar cascada
+  if(it.comboCat) {
+    _ifFill('if_serie',  comboSeries(it.comboCat), '— Serie —', false);
+    setV('if_serie', it.comboSerie);
+  }
+  if(it.comboSerie) {
+    _ifFill('if_config', comboConfigs(it.comboCat,it.comboSerie), '— Config. —', false);
+    setV('if_config', it.comboConfig);
+  }
+  if(it.comboConfig) {
+    _ifFill('if_color', comboColores(it.comboCat,it.comboSerie,it.comboConfig), '— Color —', false);
+    setV('if_color', it.comboColor);
+  }
+  if(it.comboColor) {
+    _ifFill('if_vidrio', comboVidrios(it.comboCat,it.comboSerie,it.comboConfig,it.comboColor), '— Vidrio —', false);
+    setV('if_vidrio', it.comboVidrio);
+  }
+  if(it.comboVidrio) {
+    _ifFill('if_grosor', comboGrosores(it.comboCat,it.comboSerie,it.comboConfig,it.comboColor,it.comboVidrio), '— Grosor —', false);
+    setV('if_grosor', it.comboGrosor);
+  }
+  setV('if_desc',   it.desc);
+  setV('if_ancho',  it.ancho);
+  setV('if_alto',   it.alto);
+  setV('if_cant',   it.cant||1);
+  setV('if_precio', it.precio||0);
+  setV('if_tc',     it.tipoCambio||0);
+
+  var title = document.getElementById('itemFormTitle'); if(title) title.textContent='Editando ítem #'+id;
+  var btnG  = document.getElementById('btnGuardarItem'); if(btnG) btnG.textContent='💾 Guardar cambios';
+  var btnC  = document.getElementById('btnCancelarItem'); if(btnC) btnC.style.display='';
+  ifCalcM2();
+
+  // Scroll al formulario
+  var panel = document.getElementById('itemFormPanel');
+  if(panel) panel.scrollIntoView({behavior:'smooth', block:'start'});
+}
+
+// ── Renderizar lista de ítems a la derecha ────────────────
+
+// Eliminar desde la lista
+function eliminarItemLista(id) {
+  items = items.filter(function(i){ return i.id!==id; });
+  renderItems();
+  recalcular();
+  if(_ifEdit === id) itemFormReset();
+}
+
+// Compatibilidad: agregarItem ahora usa el formulario
+// agregarItem: ver definición anterior
+
+
+
+
+
+
+
 
 
 
