@@ -695,7 +695,8 @@ tr:hover .td-p{background:#f8fafc;}
             <col style="width:4%">   <!-- Cant -->
             <col style="width:7%">   <!-- Precio -->
             <col id="colTC" style="width:0%"> <!-- T.C. -->
-            <col style="width:7%">   <!-- Subtotal -->
+            <col style="width:6%">   <!-- Sub S/ -->
+            <col style="width:6%">   <!-- Sub $ -->
             <col style="width:4%">   <!-- 3D -->
             <col style="width:4%">   <!-- Dup -->
             <col style="width:4%">   <!-- Del -->
@@ -715,14 +716,15 @@ tr:hover .td-p{background:#f8fafc;}
               <th class="th-p" style="text-align:center;">Cant.</th>
               <th class="th-p" style="text-align:right;">P.Unit.</th>
               <th class="th-p" id="thTipoCambio" style="text-align:center;display:none;">T.C.<br><small>S/</small></th>
-              <th class="th-p" style="text-align:right;">Subtotal</th>
+              <th class="th-p" style="text-align:right;background:#f0fdf4;color:#16a34a;">Sub S/</th>
+              <th class="th-p" style="text-align:right;background:#fffbeb;color:#b45309;">Sub $</th>
               <th class="th-p" style="text-align:center;">3D</th>
               <th class="th-p" style="text-align:center;">📋</th>
               <th class="th-p" style="text-align:center;">✕</th>
             </tr>
           </thead>
           <tbody id="itemsBody">
-            <tr><td colspan="17" style="text-align:center;color:#94a3b8;padding:18px;font-style:italic;">Sin ítems — presiona ＋ Agregar ítem</td></tr>
+            <tr><td colspan="18" style="text-align:center;color:#94a3b8;padding:18px;font-style:italic;">Sin ítems — presiona ＋ Agregar ítem</td></tr>
           </tbody>
         </table>
         </div>
@@ -1202,13 +1204,15 @@ function renderItems() {
   // Badge y subtotal
   var badge = document.getElementById('itemCountBadge');
   if(badge) badge.textContent = items.length;
-  var m = document.getElementById('cotMoneda');
-  var sym = m?(SIM[m.value]||'S/'):'S/';
-  var tot = items.reduce(function(s,it){return s+calcSubtotalItem(it);},0);
+  var sym = simbol(); // siempre lee moneda actual
+  var totPEN = items.reduce(function(s,it){return s+calcSubtotalItem(it);},0);
+  var totUSD = items.reduce(function(s,it){return s+calcSubtotalItemUSD(it);},0);
   var el = document.getElementById('itemsSubtotalTop');
-  if(el) el.textContent = sym+' '+tot.toFixed(2);
+  if(el) el.innerHTML = 
+    '<span style="color:#16a34a;">S/ '+totPEN.toFixed(2)+'</span>'
+    +(totUSD>0?' &nbsp; <span style="color:#b45309;">$ '+totUSD.toFixed(2)+'</span>':'');
   // T.C. visibilidad
-  var usd = m && m.value==='USD';
+  var usd = (document.getElementById('cotMoneda')||{value:''}).value === 'USD';
   var th = document.getElementById('thTipoCambio');
   if(th) th.style.display = usd?'table-cell':'none';
   var col = document.getElementById('colTC');
@@ -1222,7 +1226,7 @@ function renderItems() {
 function buildRowHTML(it, idx) {
   var m  = document.getElementById('cotMoneda');
   var esUSD = m && m.value==='USD';
-  var sym   = m ? (SIM[m.value]||'S/') : 'S/';
+  var sym   = simbol(); // siempre lee la moneda actual
   var m2v   = calcM2(it);
   var sub   = calcSubtotalItem(it);
   var cat=it.comboCat||'', serie=it.comboSerie||'';
@@ -1280,7 +1284,12 @@ function buildRowHTML(it, idx) {
       '<input type="number" value="'+escH(it.tipoCambio||0)+'" min="0" step="0.01" placeholder="3.70"'+
       ' style="text-align:center;" onchange="saveField('+it.id+',\'tipoCambio\',this.value)"></td>'+
 
-    '<td '+td+' style="text-align:right;font-weight:700;color:var(--hi);white-space:nowrap;">'+sym+' '+sub.toFixed(2)+'</td>'+
+    '<td '+td+' style="text-align:right;font-weight:700;color:#16a34a;white-space:nowrap;background:#f0fdf4;">'+
+      'S/ '+calcSubtotalItem(it).toFixed(2)+
+    '</td>'+
+    '<td '+td+' style="text-align:right;font-weight:700;color:#b45309;white-space:nowrap;background:#fffbeb;">'+
+      (calcSubtotalItemUSD(it)>0?'$ '+calcSubtotalItemUSD(it).toFixed(2):'—')+
+    '</td>'+
 
     '<td '+td+' style="text-align:center;"><button onclick="abrir3D('+it.id+')"'+
       ' style="background:#eff6ff;color:#2563eb;border:1px solid #bfdbfe;border-radius:6px;padding:2px 5px;font-size:10px;cursor:pointer;">🔲</button></td>'+
@@ -2162,13 +2171,23 @@ function calcM2(it) {
   return (a / 100) * (h / 100);
 }
 function calcSubtotalItem(it) {
-  // Si hay tipo de cambio, precio está en USD → convertir a PEN
+  // Siempre calcula en PEN (moneda base)
   var precio = parseFloat(it.precio)||0;
   var tc = parseFloat(it.tipoCambio)||0;
-  if(tc > 0) precio = precio * tc; // precio en PEN = USD × T.C.
-  return calcM2(it) > 0
-    ? calcM2(it) * (parseFloat(it.cant)||1) * precio
-    : (parseFloat(it.cant)||1) * precio;
+  var precioBase = (tc > 0) ? precio * tc : precio; // si USD × T.C. = PEN
+  var qty = calcM2(it) > 0 ? calcM2(it) * (parseFloat(it.cant)||1) : (parseFloat(it.cant)||1);
+  return qty * precioBase;
+}
+function calcSubtotalItemUSD(it) {
+  // Subtotal en USD (precio sin convertir × m² × cant)
+  var precio = parseFloat(it.precio)||0;
+  var tc = parseFloat(it.tipoCambio)||0;
+  var qty = calcM2(it) > 0 ? calcM2(it) * (parseFloat(it.cant)||1) : (parseFloat(it.cant)||1);
+  // Si tiene T.C. el precio ya está en USD → devolverlo en USD
+  // Si NO tiene T.C., el precio está en PEN → convertir a USD dividiendo por T.C. del campo global
+  if(tc > 0) return qty * precio; // precio en USD
+  // Si moneda es PEN, no tiene sentido en USD → devolver 0
+  return 0;
 }
 
 // ─── RECALCULAR ───
@@ -2188,10 +2207,13 @@ function recalcular() {
   const ivaVal  = baseIva * ivaPct / 100;
   const total   = baseIva + ivaVal + mano;
 
-  document.getElementById('resSubtotal').textContent = fmt(subtotal);
+  document.getElementById('resSubtotal').textContent  = fmt(subtotal);
   document.getElementById('resDescuento').textContent = '-' + fmt(descVal);
-  document.getElementById('resIva').textContent = '+' + fmt(ivaVal);
-  document.getElementById('resTotal').textContent = fmt(total);
+  document.getElementById('resIva').textContent        = '+' + fmt(ivaVal);
+  document.getElementById('resTotal').textContent      = fmt(total);
+  // Re-renderizar tabla para actualizar símbolos y subtotales por ítem
+  renderItems();
+  if(typeof refreshPreviewIfOpen==='function') refreshPreviewIfOpen();
 }
 
 function _recalcOrig(){}
@@ -3291,6 +3313,29 @@ function updateBadge(){
   updateHomeBadge();
 }
 
+
+// ── Mostrar/ocultar columna T.C. según moneda ────────────
+function updateTipoCambioCol() {
+  var m = document.getElementById('cotMoneda');
+  var esUSD = m && m.value === 'USD';
+  var th = document.getElementById('thTipoCambio');
+  if(th) th.style.display = esUSD ? 'table-cell' : 'none';
+  var col = document.getElementById('colTC');
+  if(col) col.style.width = esUSD ? '5%' : '0%';
+  // Forzar re-render completo para actualizar símbolos en toda la tabla
+  renderItems();
+}
+
+// ── Actualizar símbolo de moneda en formulario ────────────
+function ifUpdateSym() {
+  var m = document.getElementById('cotMoneda');
+  var sym = m ? (SIM[m.value]||'S/') : 'S/';
+  var el = document.getElementById('if_sym');
+  if(el) el.textContent = sym;
+  var tcWrap = document.getElementById('if_tc_wrap');
+  if(tcWrap) tcWrap.style.display = (m && m.value==='USD') ? 'block' : 'none';
+}
+
 window.onload=function(){
   initCotizador(); updateBadge(); updateTipoCambioCol(); renderItems();
   var bh=document.getElementById('nav-home');
@@ -4311,530 +4356,107 @@ function rifFillFields(data) {
 // ── CONSULTAR DNI ──────────────────────────────────────
 // Usamos múltiples endpoints públicos en cascada
 function consultarDNI(dni) {
-  fetch('https://api.apis.net.pe/v2/reniec?numero='+dni, {
-    headers:{'Authorization':'Bearer apis-token-11889.0Y9yMx4T5yoaCE9h1nTrZ3Qe7wlNi3Gk','Accept':'application/json'}
-  })
-  .then(function(r){if(!r.ok)throw new Error(r.status);return r.json();})
+  // API 1: apiperu.dev — sin token, CORS libre
+  fetch('https://api.apiperu.dev/api/dni?token=&dni='+dni)
+  .then(function(r){return r.json();})
   .then(function(d){
-    var n=d.nombreCompleto||[d.apellidoPaterno,d.apellidoMaterno,d.nombres].filter(Boolean).join(' ');
-    if(n&&n.trim()){rifFillFields({nombre:n.trim()});rifSetStatus('✅ '+n.trim(),'#16a34a');rifSetLoading(false);}
-    else consultarDNI_v2(dni);
+    var n = d.nombre || d.nombreCompleto ||
+      [d.apellidoPaterno,d.apellidoMaterno,d.nombres].filter(Boolean).join(' ');
+    if(n&&n.trim()){
+      rifFillFields({nombre:n.trim()});
+      rifSetStatus('✅ '+n.trim(),'#16a34a'); rifSetLoading(false);
+    } else { consultarDNI_v2(dni); }
   })
   .catch(function(){consultarDNI_v2(dni);});
 }
 function consultarDNI_v2(dni) {
-  fetch('https://api.peruapis.com/v1/dni/'+dni)
+  // API 2: apis.net.pe sin token en header
+  fetch('https://api.apis.net.pe/v1/dni?numero='+dni)
   .then(function(r){return r.json();})
   .then(function(d){
-    var n=d.nombre||d.nombreCompleto||[d.apellidoPaterno,d.apellidoMaterno,d.nombres].filter(Boolean).join(' ');
-    if(n&&n.trim()){rifFillFields({nombre:n.trim()});rifSetStatus('✅ '+n.trim(),'#16a34a');rifSetLoading(false);}
-    else consultarDNI_v3(dni);
+    var n = d.nombreCompleto ||
+      [d.apellidoPaterno,d.apellidoMaterno,d.nombres].filter(Boolean).join(' ');
+    if(n&&n.trim()){
+      rifFillFields({nombre:n.trim()});
+      rifSetStatus('✅ '+n.trim(),'#16a34a'); rifSetLoading(false);
+    } else { consultarDNI_v3(dni); }
   })
   .catch(function(){consultarDNI_v3(dni);});
 }
 function consultarDNI_v3(dni) {
-  rifSetStatus('⚠ DNI no encontrado — ingresa el nombre','#b45309');
-  rifSetLoading(false);
+  // API 3: reniec.gob.pe proxy público
+  fetch('https://consulta.pe/api/dni/'+dni)
+  .then(function(r){return r.json();})
+  .then(function(d){
+    var n = d.nombre || d.nombre_completo || '';
+    if(n){rifFillFields({nombre:n});rifSetStatus('✅ '+n,'#16a34a');}
+    else {rifSetStatus('⚠ DNI no encontrado — ingresa el nombre','#b45309');}
+    rifSetLoading(false);
+  })
+  .catch(function(){
+    rifSetStatus('⚠ Sin conexión a RENIEC — ingresa el nombre','#b45309');
+    rifSetLoading(false);
+  });
 }
 function consultarRUC(ruc) {
-  fetch('https://api.apis.net.pe/v2/sunat?numero='+ruc, {
-    headers:{'Authorization':'Bearer apis-token-11889.0Y9yMx4T5yoaCE9h1nTrZ3Qe7wlNi3Gk','Accept':'application/json'}
-  })
-  .then(function(r){if(!r.ok)throw new Error(r.status);return r.json();})
+  // API 1: apiperu.dev — sin token
+  fetch('https://api.apiperu.dev/api/ruc?token=&ruc='+ruc)
+  .then(function(r){return r.json();})
   .then(function(d){
-    var n=d.razonSocial||d.nombre||'';
+    var n = d.nombre || d.razonSocial || d.razon_social || '';
     if(n){
-      var dir=d.direccion||[d.tipoVia,d.nombreVia,d.numero?'Nro.'+d.numero:'',d.nombreZona].filter(Boolean).join(' ');
-      rifFillFields({nombre:n,direccion:dir,ciudad:d.departamento||d.distrito||''});
-      rifSetStatus('✅ '+n+(d.estadoContribuyente?' · '+d.estadoContribuyente:''),d.estadoContribuyente==='ACTIVO'?'#16a34a':'#b45309');
+      rifFillFields({
+        nombre:    n,
+        direccion: d.direccion || d.domicilioFiscal || '',
+        ciudad:    d.departamento || d.ubigeo || '',
+      });
+      rifSetStatus('✅ '+n+(d.estado?' · '+d.estado:''), d.estado==='ACTIVO'?'#16a34a':'#b45309');
       rifSetLoading(false);
-    } else consultarRUC_v2(ruc);
+    } else { consultarRUC_v2(ruc); }
   })
   .catch(function(){consultarRUC_v2(ruc);});
 }
 function consultarRUC_v2(ruc) {
-  fetch('https://api.peruapis.com/v1/ruc/'+ruc)
+  fetch('https://api.apis.net.pe/v1/ruc?numero='+ruc)
   .then(function(r){return r.json();})
   .then(function(d){
-    var n=d.nombre||d.razon_social||d.razonSocial||'';
-    if(n){rifFillFields({nombre:n,direccion:d.direccion||'',ciudad:d.departamento||''});rifSetStatus('✅ '+n,'#16a34a');}
-    else rifSetStatus('⚠ RUC no encontrado en SUNAT','#b45309');
+    var n = d.razonSocial || d.nombre || '';
+    if(n){
+      rifFillFields({
+        nombre:    n,
+        direccion: d.direccion || '',
+        ciudad:    d.departamento || '',
+      });
+      rifSetStatus('✅ '+n+(d.estadoContribuyente?' · '+d.estadoContribuyente:''),
+        d.estadoContribuyente==='ACTIVO'?'#16a34a':'#b45309');
+      rifSetLoading(false);
+    } else { consultarRUC_v3(ruc); }
+  })
+  .catch(function(){consultarRUC_v3(ruc);});
+}
+function consultarRUC_v3(ruc) {
+  fetch('https://consulta.pe/api/ruc/'+ruc)
+  .then(function(r){return r.json();})
+  .then(function(d){
+    var n = d.nombre || d.razonSocial || '';
+    if(n){
+      rifFillFields({nombre:n, direccion:d.direccion||'', ciudad:d.departamento||''});
+      rifSetStatus('✅ '+n,'#16a34a');
+    } else {
+      rifSetStatus('⚠ RUC no encontrado en SUNAT','#b45309');
+    }
     rifSetLoading(false);
   })
-  .catch(function(){rifSetStatus('⚠ Sin conexión a SUNAT — ingresa los datos','#b45309');rifSetLoading(false);});
+  .catch(function(){
+    rifSetStatus('⚠ Sin conexión a SUNAT — ingresa los datos','#b45309');
+    rifSetLoading(false);
+  });
 }
-function consultarRUC_v3(ruc){consultarRUC_v2(ruc);}
+function consultarRUC_v4(ruc){consultarRUC_v3(ruc);}
 function formatDireccionRUC(d){
-  return [d.tipoVia,d.nombreVia,d.numero?'Nro.'+d.numero:'',d.nombreZona].filter(Boolean).join(' ')||(d.direccion||'');
+  return [d.tipoVia,d.nombreVia,d.numero?'Nro.'+d.numero:'',d.nombreZona]
+    .filter(Boolean).join(' ')||(d.direccion||'');
 }
-
-
-
-
-// ── Vista preliminar inline ──────────────────────────────
-function togglePreviewInline() {
-  var sec = document.getElementById('previewSection');
-  if(!sec) return;
-  var visible = sec.style.display !== 'none';
-  if(visible) {
-    sec.style.display = 'none';
-  } else {
-    sec.style.display = 'block';
-    renderPreviewInline();
-    // Scroll suave hasta la vista previa
-    setTimeout(function(){
-      sec.scrollIntoView({behavior:'smooth', block:'start'});
-    }, 100);
-  }
-}
-
-function renderPreviewInline() {
-  var d   = getDatos();
-  var box = document.getElementById('previewInlineContent');
-  if(!box) return;
-
-  var moneda = d.cot.moneda || 'PEN';
-  var sym    = SIM[moneda] || 'S/';
-
-  // Calcular totales
-  var subtotal = items.reduce(function(s,it){ return s + calcSubtotalItem(it); }, 0);
-  var descPct  = parseFloat(document.getElementById('descPct').value)||0;
-  var ivaPct   = parseFloat(document.getElementById('ivaPct').value)||0;
-  var mano     = parseFloat(document.getElementById('manoObra').value)||0;
-  var descVal  = subtotal * descPct / 100;
-  var base     = subtotal - descVal;
-  var ivaVal   = base * ivaPct / 100;
-  var total    = base + ivaVal + mano;
-
-  function fmtN(n){ return sym+' '+parseFloat(n||0).toLocaleString('es',{minimumFractionDigits:2,maximumFractionDigits:2}); }
-
-  // Header empresa + cliente
-  var html2 = '<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">';
-
-  // Empresa
-  html2 += '<div>'
-    + '<div style="font-family:Space Grotesk,sans-serif;font-size:15px;font-weight:800;color:#1e293b;margin-bottom:4px;">'
-    + d.empresa.nombre + '</div>'
-    + '<div style="font-size:11px;color:#64748b;line-height:1.7;">'
-    + 'RUC: '+d.empresa.ruc+'<br>'
-    + d.empresa.tel+'<br>'
-    + d.empresa.dir+'<br>'
-    + d.empresa.email
-    + '</div></div>';
-
-  // Cotización info
-  html2 += '<div style="text-align:right;">'
-    + '<div style="font-family:Space Grotesk,sans-serif;font-size:18px;font-weight:800;color:#2563eb;">COTIZACIÓN</div>'
-    + '<div style="font-size:12px;color:#1e293b;margin-top:4px;line-height:1.7;">'
-    + '<strong>N°:</strong> '+(d.cot.num||'—')+'<br>'
-    + '<strong>Fecha:</strong> '+(d.cot.fecha||'—')+'<br>'
-    + '<strong>Válida hasta:</strong> '+(d.cot.validez||'—')+'<br>'
-    + '<strong>Moneda:</strong> '+moneda
-    + '</div></div>';
-  html2 += '</div>';
-
-  // Divider
-  html2 += '<div style="height:2px;background:linear-gradient(90deg,#2563eb,#93c5fd);border-radius:2px;margin-bottom:14px;"></div>';
-
-  // Cliente
-  html2 += '<div style="background:#f8fafc;border-radius:10px;padding:12px 14px;margin-bottom:14px;border:1px solid #e2e8f0;">'
-    + '<div style="font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;">Cliente</div>'
-    + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:12px;">'
-    + '<div><strong>'+d.cliente.nombre+'</strong></div>'
-    + '<div>'+( d.cliente.rif ? 'DNI/RUC: '+d.cliente.rif : '')+'</div>'
-    + '<div>'+( d.cliente.tel || '')+'</div>'
-    + '<div>'+( d.cliente.email || '')+'</div>'
-    + '<div style="grid-column:span 2;">'+( d.cliente.dir ? '📍 '+d.cliente.dir+(d.cliente.ciudad?', '+d.cliente.ciudad:'') : '')+'</div>'
-    + '</div></div>';
-
-  // Tabla de ítems
-  html2 += '<table style="width:100%;border-collapse:collapse;font-size:11px;margin-bottom:14px;">'
-    + '<thead><tr style="background:#f1f5f9;">'
-    + '<th style="padding:7px 8px;text-align:left;font-weight:700;color:#64748b;border-bottom:2px solid #e2e8f0;width:28px;">#</th>'
-    + '<th style="padding:7px 8px;text-align:left;font-weight:700;color:#64748b;border-bottom:2px solid #e2e8f0;">Descripción / Producto</th>'
-    + '<th style="padding:7px 8px;text-align:center;font-weight:700;color:#64748b;border-bottom:2px solid #e2e8f0;width:70px;">Medidas</th>'
-    + '<th style="padding:7px 8px;text-align:center;font-weight:700;color:#64748b;border-bottom:2px solid #e2e8f0;width:42px;">m²</th>'
-    + '<th style="padding:7px 8px;text-align:center;font-weight:700;color:#64748b;border-bottom:2px solid #e2e8f0;width:38px;">Cant.</th>'
-    + '<th style="padding:7px 8px;text-align:right;font-weight:700;color:#64748b;border-bottom:2px solid #e2e8f0;width:80px;">P.Unit.</th>'
-    + '<th style="padding:7px 8px;text-align:right;font-weight:700;color:#64748b;border-bottom:2px solid #e2e8f0;width:80px;">Subtotal</th>'
-    + '</tr></thead><tbody>';
-
-  items.forEach(function(it, i) {
-    var m2   = calcM2(it);
-    var sub  = calcSubtotalItem(it);
-    // Descripción: usar combo o descripción manual
-    var desc = it.desc || [it.comboSerie, it.comboConfig, it.comboColor, it.comboVidrio, it.comboGrosor].filter(Boolean).join(' · ') || it.tipo || '—';
-    var mat  = it.material || '';
-    // Medidas en cm
-    var med  = (it.ancho && it.alto) ? it.ancho+'×'+it.alto+' cm' : '—';
-
-    html2 += '<tr style="border-bottom:1px solid #f1f5f9;'+(i%2===0?'':'background:#fafafa')+'">'
-      + '<td style="padding:7px 8px;color:#94a3b8;text-align:center;">'+(i+1)+'</td>'
-      + '<td style="padding:7px 8px;">'
-        + '<div style="font-weight:600;color:#1e293b;">'+(it.tipo||'—')+'</div>'
-        + '<div style="color:#64748b;font-size:10px;">'+desc+'</div>'
-        + (mat ? '<div style="color:#94a3b8;font-size:10px;">'+mat+'</div>' : '')
-      + '</td>'
-      + '<td style="padding:7px 8px;text-align:center;color:#64748b;">'+med+'</td>'
-      + '<td style="padding:7px 8px;text-align:center;color:#2563eb;font-weight:600;">'+(m2>0?m2.toFixed(2):'—')+'</td>'
-      + '<td style="padding:7px 8px;text-align:center;">'+(it.cant||1)+'</td>'
-      + '<td style="padding:7px 8px;text-align:right;">'+fmtN(it.precio||0)+'</td>'
-      + '<td style="padding:7px 8px;text-align:right;font-weight:700;color:#1e40af;">'+fmtN(sub)+'</td>'
-      + '</tr>';
-  });
-
-  html2 += '</tbody></table>';
-
-  // Totales
-  html2 += '<div style="display:flex;justify-content:flex-end;">'
-    + '<div style="width:260px;">'
-    + '<div style="display:flex;justify-content:space-between;padding:5px 0;font-size:12px;border-bottom:1px solid #f1f5f9;">'
-      + '<span style="color:#64748b;">Subtotal</span><span>'+fmtN(subtotal)+'</span></div>';
-  if(descPct > 0)
-    html2 += '<div style="display:flex;justify-content:space-between;padding:5px 0;font-size:12px;border-bottom:1px solid #f1f5f9;">'
-      + '<span style="color:#64748b;">Descuento ('+descPct+'%)</span><span style="color:#dc2626;">-'+fmtN(descVal)+'</span></div>';
-  if(ivaPct > 0)
-    html2 += '<div style="display:flex;justify-content:space-between;padding:5px 0;font-size:12px;border-bottom:1px solid #f1f5f9;">'
-      + '<span style="color:#64748b;">IGV/IVA ('+ivaPct+'%)</span><span>'+fmtN(ivaVal)+'</span></div>';
-  if(mano > 0)
-    html2 += '<div style="display:flex;justify-content:space-between;padding:5px 0;font-size:12px;border-bottom:1px solid #f1f5f9;">'
-      + '<span style="color:#64748b;">Instalación</span><span>'+fmtN(mano)+'</span></div>';
-  html2 += '<div style="display:flex;justify-content:space-between;padding:9px 0 4px;font-size:15px;font-weight:800;border-top:2px solid #2563eb;margin-top:4px;">'
-    + '<span style="color:#1e293b;">TOTAL</span><span style="color:#2563eb;">'+fmtN(total)+'</span></div>';
-  html2 += '</div></div>';
-
-  // Condiciones
-  if(d.cot.pago || d.cot.entrega || d.cot.obs) {
-    html2 += '<div style="margin-top:14px;padding:10px 14px;background:#f8fafc;border-radius:9px;border:1px solid #e2e8f0;font-size:11px;line-height:1.7;">';
-    if(d.cot.pago)    html2 += '<div><strong>Pago:</strong> '+d.cot.pago+'</div>';
-    if(d.cot.entrega) html2 += '<div><strong>Entrega:</strong> '+d.cot.entrega+'</div>';
-    if(d.cot.obs)     html2 += '<div><strong>Notas:</strong> '+d.cot.obs+'</div>';
-    html2 += '</div>';
-  }
-
-  box.innerHTML = html2;
-}
-
-// Actualizar vista previa si está abierta cuando cambia algo
-function refreshPreviewIfOpen() {
-  var sec = document.getElementById('previewSection');
-  if(sec && sec.style.display !== 'none') renderPreviewInline();
-}
-
-
-
-
-
-// ── Mostrar/ocultar columna Tipo de Cambio según moneda ──
-function updateTipoCambioCol() {
-  var moneda = document.getElementById('cotMoneda');
-  var esUSD  = moneda && moneda.value === 'USD';
-  // Mostrar/ocultar th
-  var th = document.getElementById('thTipoCambio');
-  if(th) th.style.display = esUSD ? 'table-cell' : 'none';
-  // Mostrar/ocultar todas las celdas tc_id
-  items.forEach(function(it){
-    var td = document.getElementById('tc_'+it.id);
-    if(td) td.style.display = esUSD ? 'table-cell' : 'none';
-  });
-  // Re-renderizar para actualizar celdas (recalcula subtotales)
-  if(esUSD) {
-    // Si hay filas ya creadas, solo toggle sin re-render
-    var tbody = document.getElementById('itemsBody');
-    if(tbody && tbody.children.length > 0) {
-      // Ya existe DOM — solo recalcular
-      items.forEach(function(it){
-        var row = tbody.querySelector('tr[data-id="'+it.id+'"]');
-        if(row) refreshCalcCells(row, it);
-      });
-    }
-  }
-  recalcular();
-}
-
-
-
-
-// ═══════════════════════════════════════════════════════════
-//  FORMULARIO VERTICAL DE ÍTEM
-// ═══════════════════════════════════════════════════════════
-var _ifEdit = null; // null = nuevo, id = editando
-
-// Poblar select de categorías al iniciar
-function ifInit() {
-  var sel = document.getElementById('if_cat');
-  if(!sel) return;
-  sel.innerHTML = '<option value="">— Categoría —</option>';
-  COMBO_CATS.forEach(function(c){
-    sel.innerHTML += '<option>'+c+'</option>';
-  });
-  // Sincronizar símbolo de moneda
-  ifUpdateSym();
-}
-
-function ifUpdateSym() {
-  var m = document.getElementById('cotMoneda');
-  var sym = m ? (SIM[m.value]||'S/') : 'S/';
-  var el = document.getElementById('if_sym');
-  if(el) el.textContent = sym;
-  // Mostrar/ocultar tipo de cambio
-  var tcWrap = document.getElementById('if_tc_wrap');
-  if(tcWrap) tcWrap.style.display = (m && m.value==='USD') ? 'block' : 'none';
-}
-
-// Cascada Cat → Serie → Config → Color → Vidrio → Grosor
-function ifSetCat(val) {
-  _ifPatch('comboCat', val);
-  _ifPatch('comboSerie',''); _ifPatch('comboConfig','');
-  _ifPatch('comboColor',''); _ifPatch('comboVidrio',''); _ifPatch('comboGrosor','');
-  _ifFill('if_serie',  comboSeries(val), '— Serie —', false);
-  _ifFill('if_config', [], '— Config. —', true);
-  _ifFill('if_color',  [], '— Color —',  true);
-  _ifFill('if_vidrio', [], '— Vidrio —', true);
-  _ifFill('if_grosor', [], '— Grosor —', true);
-  // Tipo
-  var tipo = CAT_TO_TIPO[val] || 'Ventana';
-  _ifPatch('tipo', tipo);
-}
-function ifSetSerie(val) {
-  var cat = document.getElementById('if_cat').value;
-  _ifPatch('comboSerie', val);
-  _ifPatch('comboConfig',''); _ifPatch('comboColor','');
-  _ifPatch('comboVidrio',''); _ifPatch('comboGrosor','');
-  _ifFill('if_config', comboConfigs(cat,val), '— Config. —', false);
-  _ifFill('if_color',  [], '— Color —',  true);
-  _ifFill('if_vidrio', [], '— Vidrio —', true);
-  _ifFill('if_grosor', [], '— Grosor —', true);
-}
-function ifSetConfig(val) {
-  var cat   = document.getElementById('if_cat').value;
-  var serie = document.getElementById('if_serie').value;
-  _ifPatch('comboConfig', val);
-  _ifPatch('comboColor',''); _ifPatch('comboVidrio',''); _ifPatch('comboGrosor','');
-  // Calcular cuerpos
-  var cuerpos = configToCuerpos(val);
-  _ifPatch('cuerpos', cuerpos);
-  _ifFill('if_color',  comboColores(cat,serie,val), '— Color —', false);
-  _ifFill('if_vidrio', [], '— Vidrio —', true);
-  _ifFill('if_grosor', [], '— Grosor —', true);
-}
-function ifSetColor(val) {
-  var cat   = document.getElementById('if_cat').value;
-  var serie = document.getElementById('if_serie').value;
-  var cfg   = document.getElementById('if_config').value;
-  _ifPatch('comboColor', val);
-  _ifPatch('comboVidrio',''); _ifPatch('comboGrosor','');
-  _ifFill('if_vidrio', comboVidrios(cat,serie,cfg,val), '— Vidrio —', false);
-  _ifFill('if_grosor', [], '— Grosor —', true);
-}
-function ifSetVidrio(val) {
-  var cat   = document.getElementById('if_cat').value;
-  var serie = document.getElementById('if_serie').value;
-  var cfg   = document.getElementById('if_config').value;
-  var color = document.getElementById('if_color').value;
-  _ifPatch('comboVidrio', val);
-  _ifPatch('comboGrosor','');
-  _ifFill('if_grosor', comboGrosores(cat,serie,cfg,color,val), '— Grosor —', false);
-}
-function ifSetGrosor(val) {
-  _ifPatch('comboGrosor', val);
-  // Autocompletar material
-  var vidrio = document.getElementById('if_vidrio').value;
-  var mat = comboToMaterial(vidrio, val);
-  _ifPatch('material', mat);
-  // Autocompletar descripción
-  var it = _ifGetCurrent();
-  if(it) {
-    var desc = [it.comboSerie,it.comboConfig,it.comboColor,it.comboVidrio,val].filter(Boolean).join(' · ');
-    _ifPatch('desc', desc);
-    var dEl = document.getElementById('if_desc');
-    if(dEl && !dEl.value) dEl.value = desc;
-  }
-  ifCalcM2();
-}
-
-// Rellenar un select con opciones
-function _ifFill(id, opts, placeholder, disabled) {
-  var sel = document.getElementById(id);
-  if(!sel) return;
-  sel.disabled = disabled || opts.length===0;
-  sel.innerHTML = '<option value="">'+placeholder+'</option>';
-  opts.forEach(function(o){ sel.innerHTML += '<option>'+o+'</option>'; });
-}
-
-// Ítem temporal en edición
-var _ifItem = null;
-function _ifPatch(field, val) {
-  if(!_ifItem) _ifItem = {
-    id:0, desc:'', tipo:'Ventana', material:'Vidrio claro 6mm',
-    ancho:'', alto:'', cuerpos:1, cant:1, precio:0, tipoCambio:0,
-    comboCat:'', comboSerie:'', comboConfig:'', comboColor:'', comboVidrio:'', comboGrosor:''
-  };
-  _ifItem[field] = val;
-}
-function _ifGetCurrent() { return _ifItem; }
-
-// Calcular m² y subtotal en el formulario
-function ifCalcM2() {
-  var a   = parseFloat(document.getElementById('if_ancho').value)||0;
-  var h   = parseFloat(document.getElementById('if_alto').value)||0;
-  var m2  = (a/100)*(h/100);
-  var cant= parseFloat(document.getElementById('if_cant').value)||1;
-  var pr  = parseFloat(document.getElementById('if_precio').value)||0;
-  var tc  = parseFloat(document.getElementById('if_tc').value)||0;
-  if(tc>0) pr = pr*tc;
-  var sub = m2>0 ? m2*cant*pr : cant*pr;
-
-  var m2El  = document.getElementById('if_m2');
-  var subEl = document.getElementById('if_sub');
-  var m  = document.getElementById('cotMoneda');
-  var sym= m ? (SIM[m.value]||'S/') : 'S/';
-  if(m2El)  m2El.textContent  = m2.toFixed(2)+' m²';
-  if(subEl) subEl.textContent = sym+' '+sub.toFixed(2);
-
-  if(_ifItem) {
-    _ifItem.ancho      = document.getElementById('if_ancho').value;
-    _ifItem.alto       = document.getElementById('if_alto').value;
-    _ifItem.cant       = cant;
-    _ifItem.precio     = parseFloat(document.getElementById('if_precio').value)||0;
-    _ifItem.tipoCambio = parseFloat(document.getElementById('if_tc').value)||0;
-    _ifItem.desc       = document.getElementById('if_desc').value;
-  }
-}
-
-// Guardar ítem (agregar o actualizar)
-function itemFormGuardar() {
-  if(!_ifItem) _ifItem = {};
-  // Leer todos los campos del formulario
-  _ifItem.desc       = document.getElementById('if_desc').value;
-  _ifItem.ancho      = document.getElementById('if_ancho').value;
-  _ifItem.alto       = document.getElementById('if_alto').value;
-  _ifItem.cant       = parseFloat(document.getElementById('if_cant').value)||1;
-  _ifItem.precio     = parseFloat(document.getElementById('if_precio').value)||0;
-  _ifItem.tipoCambio = parseFloat(document.getElementById('if_tc').value)||0;
-  _ifItem.comboCat   = document.getElementById('if_cat').value;
-  _ifItem.comboSerie = document.getElementById('if_serie').value;
-  _ifItem.comboConfig= document.getElementById('if_config').value;
-  _ifItem.comboColor = document.getElementById('if_color').value;
-  _ifItem.comboVidrio= document.getElementById('if_vidrio').value;
-  _ifItem.comboGrosor= document.getElementById('if_grosor').value;
-  _ifItem.cuerpos    = configToCuerpos(_ifItem.comboConfig||'');
-  if(!_ifItem.tipo)  _ifItem.tipo = CAT_TO_TIPO[_ifItem.comboCat]||'Ventana';
-
-  if(!_ifItem.comboCat && !_ifItem.comboSerie) {
-    toast('⚠️','Selecciona al menos categoría y serie');
-    return;
-  }
-
-  if(_ifEdit !== null) {
-    // Actualizar ítem existente
-    var idx2 = items.findIndex(function(i){return i.id===_ifEdit;});
-    if(idx2>=0) { _ifItem.id = _ifEdit; items[idx2] = _ifItem; }
-  } else {
-    // Nuevo ítem
-    itemCounter++;
-    _ifItem.id = itemCounter;
-    items.push(_ifItem);
-  }
-
-  // Reset formulario
-  itemFormReset();
-  renderItems();
-  recalcular();
-  toast(_ifEdit?'💾':'✅', _ifEdit?'Ítem actualizado':'Ítem agregado');
-  _ifEdit = null;
-}
-
-// Resetear formulario al estado inicial
-function itemFormReset() {
-  _ifItem = null; _ifEdit = null;
-  ['if_cat','if_serie','if_config','if_color','if_vidrio','if_grosor'].forEach(function(id){
-    var el = document.getElementById(id);
-    if(el){ el.value=''; if(id!=='if_cat') el.disabled=true; }
-  });
-  ['if_desc','if_ancho','if_alto'].forEach(function(id){
-    var el = document.getElementById(id); if(el) el.value='';
-  });
-  var cantEl = document.getElementById('if_cant'); if(cantEl) cantEl.value='1';
-  var prEl   = document.getElementById('if_precio'); if(prEl) prEl.value='';
-  var tcEl   = document.getElementById('if_tc'); if(tcEl) tcEl.value='';
-  var m2El   = document.getElementById('if_m2'); if(m2El)  m2El.textContent='0.00 m²';
-  var subEl  = document.getElementById('if_sub'); if(subEl) subEl.textContent='S/ 0.00';
-  var title  = document.getElementById('itemFormTitle'); if(title) title.textContent='Nuevo ítem';
-  var btnG   = document.getElementById('btnGuardarItem'); if(btnG) btnG.textContent='＋ Agregar';
-  var btnC   = document.getElementById('btnCancelarItem'); if(btnC) btnC.style.display='none';
-}
-
-function itemFormCancelar() { itemFormReset(); }
-
-// Editar ítem existente desde la lista
-function itemFormEdit(id) {
-  var it = items.find(function(i){return i.id===id;});
-  if(!it) return;
-  _ifEdit = id;
-  _ifItem = Object.assign({}, it);
-
-  // Poblar formulario
-  var setV = function(elId, val){
-    var el = document.getElementById(elId);
-    if(el){ el.value = val||''; el.disabled=false; }
-  };
-  setV('if_cat',    it.comboCat);
-  // Recargar cascada
-  if(it.comboCat) {
-    _ifFill('if_serie',  comboSeries(it.comboCat), '— Serie —', false);
-    setV('if_serie', it.comboSerie);
-  }
-  if(it.comboSerie) {
-    _ifFill('if_config', comboConfigs(it.comboCat,it.comboSerie), '— Config. —', false);
-    setV('if_config', it.comboConfig);
-  }
-  if(it.comboConfig) {
-    _ifFill('if_color', comboColores(it.comboCat,it.comboSerie,it.comboConfig), '— Color —', false);
-    setV('if_color', it.comboColor);
-  }
-  if(it.comboColor) {
-    _ifFill('if_vidrio', comboVidrios(it.comboCat,it.comboSerie,it.comboConfig,it.comboColor), '— Vidrio —', false);
-    setV('if_vidrio', it.comboVidrio);
-  }
-  if(it.comboVidrio) {
-    _ifFill('if_grosor', comboGrosores(it.comboCat,it.comboSerie,it.comboConfig,it.comboColor,it.comboVidrio), '— Grosor —', false);
-    setV('if_grosor', it.comboGrosor);
-  }
-  setV('if_desc',   it.desc);
-  setV('if_ancho',  it.ancho);
-  setV('if_alto',   it.alto);
-  setV('if_cant',   it.cant||1);
-  setV('if_precio', it.precio||0);
-  setV('if_tc',     it.tipoCambio||0);
-
-  var title = document.getElementById('itemFormTitle'); if(title) title.textContent='Editando ítem #'+id;
-  var btnG  = document.getElementById('btnGuardarItem'); if(btnG) btnG.textContent='💾 Guardar cambios';
-  var btnC  = document.getElementById('btnCancelarItem'); if(btnC) btnC.style.display='';
-  ifCalcM2();
-
-  // Scroll al formulario
-  var panel = document.getElementById('itemFormPanel');
-  if(panel) panel.scrollIntoView({behavior:'smooth', block:'start'});
-}
-
-// ── Renderizar lista de ítems a la derecha ────────────────
-
-// Eliminar desde la lista
-function eliminarItemLista(id) {
-  items = items.filter(function(i){ return i.id!==id; });
-  renderItems();
-  recalcular();
-  if(_ifEdit === id) itemFormReset();
-}
-
-// Compatibilidad: agregarItem ahora usa el formulario
-// agregarItem: ver definición anterior
-
-
-
-
-
 
 
 
