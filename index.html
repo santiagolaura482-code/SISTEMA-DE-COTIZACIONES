@@ -628,46 +628,153 @@ select option{background:#fff;}
 }
 /* ══ MÓVIL: sidebar arriba solo en pantallas pequeñas ══ */
 @media(max-width:520px){
-  /* Layout */
-  .app-layout{flex-direction:column !important;}
+
+  /* ══ LAYOUT ══ */
+  .app-layout{
+    flex-direction:column !important;
+    height:100vh;
+    overflow:hidden;
+  }
+
+  /* ══ CONTENIDO PRINCIPAL ══ */
+  .main-content{
+    flex:1 !important;
+    width:100% !important;
+    overflow-y:auto !important;
+    overflow-x:hidden !important;
+    padding-bottom:70px !important;
+    box-sizing:border-box;
+  }
+
+  /* ══ SIDEBAR → BARRA INFERIOR ══ */
   .sidebar{
-    width:100% !important;height:auto !important;position:relative !important;
+    position:fixed !important;
+    bottom:0 !important;
+    left:0 !important;
+    right:0 !important;
+    top:auto !important;
+    width:100% !important;
+    height:58px !important;
+    min-height:58px !important;
+    max-height:58px !important;
     flex-direction:row !important;
-    border-right:none !important;border-bottom:1px solid rgba(255,255,255,.12);
-    overflow-x:auto;overflow-y:hidden;
-    flex-shrink:0;
+    flex-shrink:0 !important;
+    border-right:none !important;
+    border-top:2px solid rgba(255,255,255,.1) !important;
+    z-index:999 !important;
+    overflow:hidden !important;
+    box-shadow:0 -4px 16px rgba(0,0,0,.4);
+    padding:0 !important;
   }
-  .main-content{flex:1 !important;overflow-y:auto;min-height:0;}
-  .sb-brand{padding:6px 10px;flex-shrink:0;}
-  .sb-user,.sb-section,.sb-divider,.sb-footer{display:none !important;}
+
+  /* Ocultar todo lo que no es navegación */
+  .sb-brand, .sb-user, .sb-section, .sb-divider,
+  .sb-footer, .cloud-section, #cloudPanel,
+  .sidebar > *:not(.sidebar-nav-wrap){ display:none !important; }
+
+  /* Wrap de navegación */
   .sidebar-nav-wrap{
-    display:flex !important;flex-direction:row !important;
-    padding:4px 6px;gap:4px;flex:1;overflow-x:auto;
+    display:flex !important;
+    flex-direction:row !important;
+    width:100% !important;
+    height:58px !important;
+    padding:0 !important;
+    gap:0 !important;
+    overflow:hidden !important;
   }
+
+  /* Cada módulo en la barra */
   .nav-item{
-    flex-direction:column !important;gap:2px;padding:5px 8px;
-    font-size:10px !important;min-width:60px;
-    border-left:none !important;border-bottom:3px solid transparent;
-    white-space:nowrap;
+    flex:1 !important;
+    display:flex !important;
+    flex-direction:column !important;
+    align-items:center !important;
+    justify-content:center !important;
+    gap:3px !important;
+    padding:4px 0 2px !important;
+    margin:0 !important;
+    border:none !important;
+    border-top:3px solid transparent !important;
+    border-radius:0 !important;
+    min-width:0 !important;
+    max-width:none !important;
+    height:58px !important;
+    box-sizing:border-box;
+    overflow:hidden !important;
+    cursor:pointer;
+    background:transparent;
+    position:relative;
   }
   .nav-item.active{
-    border-bottom-color:var(--sb-active) !important;
-    border-left:none !important;
+    border-top-color:var(--sb-active) !important;
+    background:rgba(245,158,11,.1) !important;
   }
-  .nav-icon{font-size:16px !important;}
-  /* Pantallas */
-  .screen.active{display:block !important;flex:none !important;}
-  main.inner{padding:10px !important;}
-  .app-header{padding:8px 10px !important;}
-  /* Tabla productos — scroll horizontal */
-  .tbl-scroll{overflow-x:scroll !important;-webkit-overflow-scrolling:touch;}
-  /* Formularios */
-  .fr.c2,.fr.c3,.fr.c4{grid-template-columns:1fr !important;}
-  .grid-4{grid-template-columns:1fr 1fr !important;}
-  /* Botones */
-  .btn{padding:7px 10px !important;font-size:11px !important;}
-  /* Cards */
-  .card{padding:10px !important;}
+  .nav-icon{
+    font-size:22px !important;
+    line-height:1 !important;
+    display:block !important;
+  }
+  .nav-label{
+    font-size:8.5px !important;
+    line-height:1.1 !important;
+    display:block !important;
+    text-align:center !important;
+    white-space:nowrap !important;
+    overflow:hidden !important;
+    text-overflow:ellipsis !important;
+    max-width:100% !important;
+    padding:0 2px !important;
+  }
+  .nav-badge{
+    position:absolute !important;
+    top:3px !important;
+    right:6px !important;
+    font-size:8px !important;
+    padding:1px 4px !important;
+    min-width:14px !important;
+    height:14px !important;
+    line-height:12px !important;
+  }
+
+  /* ══ PANTALLAS ══ */
+  .screen{ display:none !important; }
+  .screen.active{ display:block !important; }
+  main.inner{ padding:10px !important; }
+  .app-header{
+    padding:8px 10px !important;
+    display:flex !important;
+    align-items:center !important;
+    flex-wrap:wrap !important;
+    gap:6px !important;
+  }
+  .hdr-breadcrumb{ font-size:13px !important; }
+  .hdr-actions{ display:flex !important; gap:4px !important; flex-wrap:wrap !important; }
+  .hdr-actions .btn{ padding:6px 10px !important; font-size:11px !important; }
+
+  /* ══ GRIDS ══ */
+  .fr.c2,.fr.c3,.fr.c4{ grid-template-columns:1fr !important; }
+  .grid-4{ grid-template-columns:1fr 1fr !important; }
+
+  /* ══ CARDS ══ */
+  .card{ padding:10px !important; }
+  .section{ margin-bottom:12px !important; }
+
+  /* ══ TABLA PRODUCTOS ══ */
+  .tbl-scroll{
+    overflow-x:scroll !important;
+    -webkit-overflow-scrolling:touch !important;
+  }
+
+  /* ══ STAT CARDS ══ */
+  .stat-card{ padding:10px !important; }
+  .stat-val{ font-size:20px !important; }
+
+  /* ══ MODAL ══ */
+  #modalContrato > div{
+    margin:10px !important;
+    max-height:calc(100vh - 80px) !important;
+    overflow-y:auto !important;
+  }
 }
 /* ══ SOLO MÓVIL: tabla de productos ══ */
 
@@ -3635,6 +3742,54 @@ function _rellenarSelectorCots() {
     + cots.map(function(c){
         return '<option value="'+c.id+'">'+c.num+' — '+(c.cliente&&c.cliente.nombre||'Sin nombre')+'</option>';
       }).join('');
+}var desc=(x.descripcion||'').split('\n').join(', ').substring(0,100);function renderContratos() {
+  var tbody = document.getElementById('contratosBody');
+  if(!tbody) return;
+  var q   = (document.getElementById('conSearch')||{value:''}).value.toLowerCase();
+  var est = (document.getElementById('conFiltroEstado')||{value:''}).value;
+  var cons = conGet().filter(function(c){
+    return (!q || (c.cliente||'').toLowerCase().includes(q) || (c.num||'').toLowerCase().includes(q))
+        && (!est || c.estado === est);
+  });
+
+  if(!cons.length){
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#94a3b8;padding:24px;font-style:italic;">Sin contratos — presiona + Nuevo Contrato</td></tr>';
+    return;
+  }
+
+  var ESTADOS = {
+    borrador:   {label:'Borrador',   bg:'#f1f5f9',color:'#64748b'},
+    firmado:    {label:'Firmado',    bg:'#dbeafe',color:'#1d4ed8'},
+    en_proceso: {label:'En Proceso', bg:'#fef9c3',color:'#92400e'},
+    completado: {label:'Completado', bg:'#dcfce7',color:'#15803d'}
+  };
+
+  tbody.innerHTML = cons.map(function(c){
+    var e2 = ESTADOS[c.estado]||ESTADOS.borrador;
+    return '<tr style="border-bottom:1px solid #f1f5f9;">'
+      +'<td style="padding:10px 12px;font-weight:700;color:#1a3a8f;">'+(c.num||'—')+'</td>'
+      +'<td style="padding:10px 12px;color:#64748b;">'+(c.fecha||'—')+'</td>'
+      +'<td style="padding:10px 12px;font-weight:600;">'+(c.cliente||'—')+'</td>'
+      +'<td style="padding:10px 12px;color:#64748b;font-size:11px;">'+(c.clienteDir||'—')+'</td>'
+      +'<td style="padding:10px 12px;text-align:right;font-weight:700;color:#16a34a;">S/ '+parseFloat(c.total||0).toFixed(2)+'</td>'
+      +'<td style="padding:10px 12px;text-align:center;"><span style="background:'+e2.bg+';color:'+e2.color+';padding:3px 10px;border-radius:20px;font-size:10px;font-weight:700;">'+e2.label+'</span></td>'
+      +'<td style="padding:8px 12px;text-align:center;white-space:nowrap;">'
+        +'<button onclick="editarContrato(\''+c.id+'\')" style="background:#eff6ff;color:#2563eb;border:1px solid #bfdbfe;border-radius:6px;padding:3px 8px;font-size:11px;cursor:pointer;margin:2px;">✏️ Editar</button>'
+        +'<button onclick="exportContratoPDF(\''+c.id+'\')" style="background:#fef2f2;color:#dc2626;border:1px solid #fca5a5;border-radius:6px;padding:3px 8px;font-size:11px;cursor:pointer;margin:2px;">📕 PDF</button>'
+        +'<button onclick="exportContratoWord(\''+c.id+'\')" style="background:#eff6ff;color:#2563eb;border:1px solid #bfdbfe;border-radius:6px;padding:3px 8px;font-size:11px;cursor:pointer;margin:2px;">📘 Word</button>'
+        +'<button onclick="eliminarContrato(\''+c.id+'\')" style="background:#fef2f2;color:#dc2626;border:1px solid #fca5a5;border-radius:6px;padding:3px 8px;font-size:11px;cursor:pointer;margin:2px;">🗑</button>'
+      +'</td>'
+    +'</tr>';
+  }).join('');
+}var desc = (c.descripcion||'').replace(/\n/g,', ').substring(0,120);
+function _rellenarSelectorCots() {
+  var sel = document.getElementById('conCotRef');
+  if(!sel) return;
+  var cots = sgGet();
+  sel.innerHTML = '<option value="">— Sin vincular —</option>'
+    + cots.map(function(c){
+        return '<option value="'+c.id+'">'+c.num+' — '+(c.cliente&&c.cliente.nombre||'Sin nombre')+'</option>';
+      }).join('');
 }
 
 function _cargarEmpresa() {
@@ -5261,6 +5416,10 @@ function resetCloudConfig(){
   cloudStatus('⚪','Sin nube','rgba(255,255,255,.4)');
   closeCloudConfig();toast('ℹ️','Nube desconectada');
 }
+
+
+
+
 
 
 
