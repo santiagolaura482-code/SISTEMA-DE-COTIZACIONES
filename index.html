@@ -856,7 +856,7 @@ select option{background:#fff;}
         </div>
         <div class="stat-card" style="border-left:4px solid #16a34a;">
           <div class="stat-val" id="finRestante" style="color:#16a34a;">S/ 0.00</div>
-          <div class="stat-lbl">Restante</div>
+          <div class="stat-lbl">ADELANTOS - EGRESOS</div>
         </div>
         <div class="stat-card" style="border-left:4px solid #f59e0b;">
           <div class="stat-val" id="finRestantePagos" style="color:#f59e0b;">S/ 0.00</div>
@@ -870,11 +870,7 @@ select option{background:#fff;}
       <div class="fbar" style="margin-bottom:8px;">
         <div class="section-label" style="margin:0;">📋 Movimientos de Obras</div>
         <input class="si" type="text" id="finSearch" placeholder="🔍 Buscar..." oninput="renderFin()" style="max-width:200px;">
-        <select id="finFiltroTipo" onchange="renderFin()" style="max-width:130px;padding:7px 10px;font-size:12px;">
-          <option value="">Todos</option>
-          <option value="ingreso">Ingresos</option>
-          <option value="egreso">Egresos</option>
-        </select>
+<input type="hidden" id="finFiltroTipo" value="">
         <button class="btn btn-g btn-sm" onclick="document.getElementById('finSearch').value='';document.getElementById('finFiltroTipo').value='';renderFin();">✕ Limpiar</button>
         <div style="margin-left:auto;display:flex;gap:8px;">
           <button class="btn btn-g btn-sm" onclick="finExportExcel()">📊 Excel</button>
@@ -893,7 +889,7 @@ select option{background:#fff;}
               <th style="text-align:right;color:#7c3aed;">ADELANTOS</th>
               <th style="text-align:right;color:#f59e0b;">RESTANTE PAGO OBRA</th>
               <th style="text-align:right;color:#dc2626;">EGRESOS</th>
-              <th style="text-align:right;color:#16a34a;">RESTANTE INGRESOS</th>
+              <th style="text-align:right;color:#16a34a;">ADELANTOS - EGRESOS</th>
               <th>ACCIONES</th>
             </tr>
           </thead>
@@ -4532,7 +4528,7 @@ function renderFin() {
     var sumEgr    = (x.egresos||[]).reduce(function(s,e){return s+parseFloat(e.monto||0);},0)
                     || parseFloat(x.monto||0);
     // Restante ingresos = montoObra - egresos
-    var restIng   = montoObra - sumEgr;
+    var restIng   = sumAdel - sumEgr;
 
     var restPagoColor = restPago >= 0 ? '#f59e0b' : '#dc2626';
     var restIngColor  = restIng  >= 0 ? '#16a34a' : '#dc2626';
@@ -4585,39 +4581,57 @@ function finExportExcel() {
   var movs = finGet();
   if(!movs.length){ toast('⚠️','Sin movimientos para exportar'); return; }
 
-  // Totales
-  var totalIng = movs.filter(function(x){return x.tipo==='ingreso';}).reduce(function(s,x){return s+parseFloat(x.monto||0);},0);
-  var totalEgr = movs.filter(function(x){return x.tipo==='egreso';}).reduce(function(s,x){return s+parseFloat(x.monto||0);},0);
-  var restante = totalIng - totalEgr;
+  var fmt2 = function(n){ return parseFloat(n||0).toFixed(2); };
 
-  var header = ['Tipo','Obra','Fecha','Solicitante','Descripción','Monto (S/)'];
-  var rows   = movs.map(function(x){
+  // Encabezados exactos de la tabla
+  var header = [
+    'OBRA','FECHA','SOLICITANTE',
+    'MONTO DE OBRA','ADELANTOS','RESTANTE PAGO OBRA',
+    'EGRESOS','RESTANTE INGRESOS',
+    'DETALLE EGRESOS'
+  ];
+
+  var rows = movs.map(function(x){
+    var montoObra = parseFloat(x.montoObra||0);
+    var sumAdel   = (x.adelantos||[]).reduce(function(s,a){return s+(a!==null&&a!==''?parseFloat(a)||0:0);},0);
+    var sumEgr    = (x.egresos||[]).reduce(function(s,e){return s+parseFloat(e.monto||0);},0)||parseFloat(x.monto||0);
+    var restPago  = montoObra - sumAdel;
+    var restIng   = sumAdel - sumEgr;
+    var detalleEgr= (x.egresos||[]).map(function(e,i){
+      return (i+1)+'. '+e.desc+' S/'+parseFloat(e.monto||0).toFixed(2);
+    }).join(' | ');
     return [
-      x.tipo==='ingreso'?'Ingreso':'Egreso',
       x.obra||'',
       x.fecha||'',
       x.solicitante||'',
-      x.desc||'',
-      parseFloat(x.monto||0)
+      montoObra,
+      sumAdel,
+      restPago,
+      sumEgr,
+      restIng,
+      detalleEgr
     ];
   });
-  // Fila resumen
-  rows.push(['','','','','TOTAL INGRESOS', totalIng]);
-  rows.push(['','','','','TOTAL EGRESOS',  totalEgr]);
-  rows.push(['','','','','RESTANTE',        restante]);
+
+  // Fila de totales
+  var tObras   = movs.reduce(function(s,x){return s+parseFloat(x.montoObra||0);},0);
+  var tAdel    = movs.reduce(function(s,x){return s+(x.adelantos||[]).reduce(function(a,m){return a+(m!==null&&m!==''?parseFloat(m)||0:0);},0);},0);
+  var tEgr     = movs.reduce(function(s,x){return s+(x.egresos||[]).reduce(function(a,e){return a+parseFloat(e.monto||0);},0)||parseFloat(x.monto||0);},0);
+  var tRestP   = movs.reduce(function(s,x){var mo=parseFloat(x.montoObra||0);var sa=(x.adelantos||[]).reduce(function(a,m){return a+(m!==null&&m!==''?parseFloat(m)||0:0);},0);return s+(mo-sa);},0);
+  var tRestI   = movs.reduce(function(s,x){var mo=parseFloat(x.montoObra||0);var sa2=(x.adelantos||[]).reduce(function(a,m){return a+(m!==null&&m!==''?parseFloat(m)||0:0);},0);var se=(x.egresos||[]).reduce(function(a,e){return a+parseFloat(e.monto||0);},0)||parseFloat(x.monto||0);return s+(sa2-se);},0);
+
+  rows.push(['','','TOTALES', tObras, tAdel, tRestP, tEgr, tRestI, '']);
 
   var ws_data = [header].concat(rows);
 
   if(typeof XLSX !== 'undefined'){
     var wb = XLSX.utils.book_new();
     var ws = XLSX.utils.aoa_to_sheet(ws_data);
-    // Anchos de columna
-    ws['!cols'] = [{wch:12},{wch:25},{wch:14},{wch:22},{wch:35},{wch:14}];
-    XLSX.utils.book_append_sheet(wb, ws, 'Finanzas');
+    ws['!cols'] = [{wch:20},{wch:12},{wch:22},{wch:14},{wch:14},{wch:18},{wch:14},{wch:18},{wch:40}];
+    XLSX.utils.book_append_sheet(wb, ws, 'Finanzas Obras');
     XLSX.writeFile(wb, 'Finanzas_Obras_'+new Date().toISOString().split('T')[0]+'.xlsx');
     toast('📊','Excel descargado ✅');
   } else {
-    // Fallback CSV
     var csv = ws_data.map(function(r){
       return r.map(function(v){ return '"'+String(v||'').replace(/"/g,'""')+'"'; }).join(',');
     }).join('\n');
@@ -4720,7 +4734,7 @@ function finImprimir() {
 var _finAdelantos = []; // array de montos de adelanto
 
 function finAgregarAdelanto(monto) {
-  _finAdelantos.push(parseFloat(monto)||0);
+  _finAdelantos.push(monto!==undefined&&monto!==''?parseFloat(monto):null);
   finRenderAdelantos();
   finRecalcularRestante();
 }
@@ -4741,7 +4755,7 @@ function finRenderAdelantos() {
   cont.innerHTML = _finAdelantos.map(function(m, i){
     return '<div style="display:flex;align-items:center;gap:8px;">'
       +'<span style="font-size:11px;color:#555;flex-shrink:0;">Adelanto '+(i+1)+':</span>'
-      +'<input type="number" value="'+m+'" min="0" step="0.01"'
+      +'<input type="number" value="'+(m!==null&&m!==undefined&&m!==0?m:'')+'" min="0" step="0.01" placeholder="Monto S/"'
       +' data-idx="'+i+'"'
       +' onchange="_finAdelantos[this.dataset.idx]=parseFloat(this.value)||0;finRecalcularRestante();"'
       +' style="flex:1;padding:6px 8px;border-radius:6px;border:1px solid var(--border);'
@@ -4755,7 +4769,7 @@ function finRenderAdelantos() {
 
 function finRecalcularRestante() {
   var montoObra = parseFloat(document.getElementById('finMontoObra').value||0);
-  var totalAdel = _finAdelantos.reduce(function(s,m){return s+parseFloat(m||0);},0);
+  var totalAdel = _finAdelantos.reduce(function(s,m){return s+(m!==null&&m!==''?parseFloat(m)||0:0);},0);
   var restante  = montoObra - totalAdel;
   var el = document.getElementById('finRestantePago');
   if(el){
@@ -4769,7 +4783,7 @@ function finRecalcularRestante() {
 var _finEgresos = []; // [{monto, desc}]
 
 function finAgregarEgreso(monto, desc) {
-  _finEgresos.push({monto: parseFloat(monto)||0, desc: desc||''});
+  _finEgresos.push({monto: '', desc: desc||''});
   finRenderEgresos();
   finActualizarTotalEgresos();
 }
@@ -4791,7 +4805,7 @@ function finRenderEgresos() {
     return '<div style="background:var(--card);border:1px solid #fca5a5;border-radius:8px;padding:10px;display:flex;flex-direction:column;gap:6px;">'
       +'<div style="display:flex;align-items:center;gap:8px;">'
         +'<span style="font-size:11px;color:#dc2626;font-weight:700;flex-shrink:0;">Egreso '+(i+1)+'</span>'
-        +'<input type="number" value="'+e.monto+'" min="0" step="0.01" placeholder="0.00"'
+        +'<input type="number" value="'+(e.monto&&e.monto!==0?e.monto:'')+'" min="0" step="0.01" placeholder="Monto S/"'
         +' data-idx="'+i+'" data-field="monto"'
         +' onchange="_finEgresos[this.dataset.idx].monto=parseFloat(this.value)||0;finActualizarTotalEgresos();"'
         +' style="flex:1;padding:6px 8px;border-radius:6px;border:1px solid #fca5a5;'
@@ -5938,6 +5952,10 @@ function resetCloudConfig(){
   cloudStatus('⚪','Sin nube','rgba(255,255,255,.4)');
   closeCloudConfig();toast('ℹ️','Nube desconectada');
 }
+
+
+
+
 
 
 
