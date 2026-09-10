@@ -846,39 +846,39 @@ select option{background:#fff;}
     <div class="section">
       <div class="section-label">💰 Resumen Financiero de Obras</div>
       <div class="grid-4">
-        <div class="stat-card" style="border-left:4px solid #16a34a;">
-          <div class="stat-val" id="finTotalIng" style="color:#16a34a;">S/ 0.00</div>
-          <div class="stat-lbl">Total Ingresos</div>
+        <div class="stat-card" style="border-left:4px solid #1a3a8f;">
+          <div class="stat-val" id="finTotalObras" style="color:#1a3a8f;">S/ 0.00</div>
+          <div class="stat-lbl">Total en Obras</div>
         </div>
         <div class="stat-card" style="border-left:4px solid #dc2626;">
           <div class="stat-val" id="finTotalEgr" style="color:#dc2626;">S/ 0.00</div>
           <div class="stat-lbl">Total Egresos</div>
         </div>
-        <div class="stat-card" style="border-left:4px solid #2563eb;">
-          <div class="stat-val" id="finRestante" style="color:#2563eb;">S/ 0.00</div>
+        <div class="stat-card" style="border-left:4px solid #16a34a;">
+          <div class="stat-val" id="finRestante" style="color:#16a34a;">S/ 0.00</div>
           <div class="stat-lbl">Restante</div>
         </div>
         <div class="stat-card" style="border-left:4px solid #f59e0b;">
-          <div class="stat-val" id="finTotalMovs" style="color:#f59e0b;">0</div>
-          <div class="stat-lbl">Movimientos</div>
+          <div class="stat-val" id="finRestantePagos" style="color:#f59e0b;">S/ 0.00</div>
+          <div class="stat-lbl">Restante de Pagos</div>
         </div>
       </div>
     </div>
 
-    <!-- Filtros + Nuevo -->
+    <!-- MOVIMIENTOS INDIVIDUALES -->
     <div class="section">
-      <div class="section-label">📋 Movimientos de Obras</div>
-      <div class="fbar">
-        <input class="si" type="text" id="finSearch" placeholder="🔍 Buscar obra, solicitante..." oninput="renderFin()">
-        <select id="finFiltroTipo" onchange="renderFin()" style="max-width:140px;padding:7px 10px;font-size:12px;">
+      <div class="fbar" style="margin-bottom:8px;">
+        <div class="section-label" style="margin:0;">📋 Movimientos de Obras</div>
+        <input class="si" type="text" id="finSearch" placeholder="🔍 Buscar..." oninput="renderFin()" style="max-width:200px;">
+        <select id="finFiltroTipo" onchange="renderFin()" style="max-width:130px;padding:7px 10px;font-size:12px;">
           <option value="">Todos</option>
           <option value="ingreso">Ingresos</option>
           <option value="egreso">Egresos</option>
         </select>
         <button class="btn btn-g btn-sm" onclick="document.getElementById('finSearch').value='';document.getElementById('finFiltroTipo').value='';renderFin();">✕ Limpiar</button>
         <div style="margin-left:auto;display:flex;gap:8px;">
-          <button class="btn btn-g btn-sm" onclick="finExportExcel()" title="Descargar Excel">📊 Excel</button>
-          <button class="btn btn-o btn-sm" onclick="finImprimir()" title="Imprimir reporte">🖨️ Imprimir</button>
+          <button class="btn btn-g btn-sm" onclick="finExportExcel()">📊 Excel</button>
+          <button class="btn btn-o btn-sm" onclick="finImprimir()">🖨️ Imprimir</button>
           <button class="btn btn-p btn-sm" onclick="abrirModalFin()">＋ Nuevo Movimiento</button>
         </div>
       </div>
@@ -886,12 +886,19 @@ select option{background:#fff;}
         <table class="stbl">
           <thead>
             <tr>
-              <th>TIPO</th><th>OBRA</th><th>FECHA</th><th>SOLICITANTE</th>
-              <th>DESCRIPCIÓN</th><th>MONTO</th><th>ACCIONES</th>
+              <th>OBRA</th>
+              <th>FECHA</th>
+              <th>SOLICITANTE</th>
+              <th style="text-align:right;color:#1a3a8f;">MONTO DE OBRA</th>
+              <th style="text-align:right;color:#7c3aed;">ADELANTOS</th>
+              <th style="text-align:right;color:#f59e0b;">RESTANTE PAGO OBRA</th>
+              <th style="text-align:right;color:#dc2626;">EGRESOS</th>
+              <th style="text-align:right;color:#16a34a;">RESTANTE INGRESOS</th>
+              <th>ACCIONES</th>
             </tr>
           </thead>
           <tbody id="finBody">
-            <tr><td colspan="7" style="text-align:center;color:#94a3b8;padding:24px;font-style:italic;">Sin movimientos</td></tr>
+            <tr><td colspan="9" style="text-align:center;color:#94a3b8;padding:24px;font-style:italic;">Sin movimientos</td></tr>
           </tbody>
         </table>
       </div>
@@ -899,8 +906,6 @@ select option{background:#fff;}
 
   </main>
 </div>
-
-<!-- Modal Finanzas -->
 
 <div id="screen-cot" class="screen">
   <main class="inner">
@@ -1480,47 +1485,87 @@ select option{background:#fff;}
 
 
 
-<div id="modalFin" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:500;align-items:center;justify-content:center;">
-  <div style="background:var(--card);border-radius:16px;padding:28px;width:100%;max-width:480px;margin:16px;max-height:90vh;overflow-y:auto;">
+<div id="modalFin" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:500;align-items:center;justify-content:center;overflow-y:auto;">
+  <div style="background:var(--card);border-radius:16px;padding:28px;width:100%;max-width:520px;margin:16px auto;max-height:90vh;overflow-y:auto;">
     <h3 style="margin:0 0 20px;font-size:16px;color:var(--accent);">💰 Nuevo Movimiento</h3>
     <input type="hidden" id="finEditId">
-    <div class="fr c2" style="gap:12px;margin-bottom:12px;">
-      <label class="lbl">Tipo *
-        <select id="finTipo" style="width:100%;padding:9px 10px;border-radius:8px;border:1px solid var(--border);background:var(--inp);color:var(--text);font-size:13px;">
-          <option value="ingreso">💚 Ingreso</option>
-          <option value="egreso">❤️ Egreso</option>
-        </select>
-      </label>
+
+    <!-- Fecha -->
+    <div style="margin-bottom:12px;">
       <label class="lbl">Fecha *
         <input type="date" id="finFecha" class="inp">
       </label>
     </div>
+    <input type="hidden" id="finTipo" value="ingreso">
+
+    <!-- Nombre de Obra -->
     <div style="margin-bottom:12px;">
       <label class="lbl">Nombre de Obra *
         <input type="text" id="finObra" class="inp" placeholder="Ej: Mampara Chorrillos">
       </label>
     </div>
+
+    <!-- Monto de Obra -->
+    <div style="margin-bottom:12px;">
+      <label class="lbl">Monto de Obra (S/) *
+        <input type="number" id="finMontoObra" class="inp" placeholder="0.00" min="0" step="0.01"
+               oninput="finRecalcularRestante()">
+      </label>
+    </div>
+
+    <!-- Adelantos -->
+    <div style="margin-bottom:12px;">
+      <label class="lbl">Adelantos</label>
+      <div id="finAdelantosList" style="display:flex;flex-direction:column;gap:6px;margin-bottom:8px;"></div>
+      <button type="button" onclick="finAgregarAdelanto()"
+        style="background:#eff6ff;color:#2563eb;border:1px solid #bfdbfe;border-radius:8px;
+               padding:7px 16px;font-size:12px;cursor:pointer;font-weight:600;width:100%;">
+        ＋ Agregar Adelanto
+      </button>
+    </div>
+
+    <!-- Restante de Pago (calculado) -->
+    <div style="margin-bottom:12px;background:#f0fdf4;border:1px solid #86efac;border-radius:10px;padding:12px 16px;">
+      <div style="font-size:11px;font-weight:700;color:#16a34a;margin-bottom:4px;">RESTANTE DE PAGO DE LA OBRA</div>
+      <div id="finRestantePago" style="font-size:20px;font-weight:900;color:#16a34a;">S/ 0.00</div>
+      <div style="font-size:10px;color:#555;margin-top:2px;">Monto de Obra − suma de adelantos</div>
+    </div>
+
+
+    <!-- Solicitante -->
     <div style="margin-bottom:12px;">
       <label class="lbl">Solicitante *
         <input type="text" id="finSolicitante" class="inp" placeholder="Nombre del solicitante">
       </label>
     </div>
+    <!-- Egresos con descripción -->
     <div style="margin-bottom:12px;">
-      <label class="lbl">Monto (S/) *
-        <input type="number" id="finMonto" class="inp" placeholder="0.00" min="0" step="0.01">
-      </label>
+      <label class="lbl" style="font-weight:700;color:#dc2626;">❤️ Egresos</label>
+      <div id="finEgresosList" style="display:flex;flex-direction:column;gap:8px;margin-bottom:8px;margin-top:4px;"></div>
+      <button type="button" onclick="finAgregarEgreso()"
+        style="background:#fef2f2;color:#dc2626;border:1px solid #fca5a5;border-radius:8px;
+               padding:7px 16px;font-size:12px;cursor:pointer;font-weight:600;width:100%;">
+        ＋ Agregar Egreso
+      </button>
     </div>
-    <div style="margin-bottom:20px;">
-      <label class="lbl">Descripción
-        <textarea id="finDesc" class="inp" rows="3" placeholder="Detalle del movimiento..." style="resize:vertical;"></textarea>
-      </label>
+
+    <!-- Total Egresos (calculado) -->
+    <div style="margin-bottom:12px;background:#fef2f2;border:1px solid #fca5a5;border-radius:10px;padding:10px 16px;">
+      <div style="font-size:11px;font-weight:700;color:#dc2626;margin-bottom:2px;">TOTAL EGRESOS</div>
+      <div id="finTotalEgresosModal" style="font-size:18px;font-weight:900;color:#dc2626;">S/ 0.00</div>
     </div>
+
+    <!-- Campo oculto para monto total (compatibilidad) -->
+    <input type="hidden" id="finMonto" value="0">
+    <input type="hidden" id="finDesc" value="">
+
     <div class="gap8">
       <button class="btn btn-p" onclick="guardarFin()">💾 Guardar</button>
       <button class="btn btn-g" onclick="cerrarModalFin()">Cancelar</button>
     </div>
   </div>
 </div>
+
 
 <div id="modalContrato" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;overflow-y:auto;">
   <div style="background:#fff;max-width:820px;margin:24px auto;border-radius:16px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.25);">
@@ -2971,9 +3016,11 @@ function buildPDFHtml(d) {
       <td style="text-align:center;font-weight:600;">${it.tipo||'—'}</td>
       <td style="text-align:center;">${medidas}</td>
       <td style="padding:8px 10px;">
-        <strong>${it.desc || it.tipo}</strong><br>
-        <span style="color:#444;font-size:10px;">${it.material}</span>
-        
+        <strong style="color:#1a3a8f;">${it.comboCat||it.tipo||'—'}</strong>
+        ${it.comboSerie ? `<span style="font-size:10px;color:#555;"> · ${it.comboSerie}</span>` : ''}
+        ${it.comboConfig ? `<span style="font-size:10px;color:#555;"> · ${it.comboConfig}</span>` : ''}
+        <br>
+        <span style="color:#555;font-size:10px;">${[it.comboColor,it.comboVidrio,it.comboGrosor].filter(Boolean).join(' · ')||it.material||''}</span>
       </td>
       <td style="text-align:center;font-weight:700;color:#1a3a8f;">${fmtP(sub)}</td>
     </tr>`;
@@ -3112,8 +3159,8 @@ function buildPDFHtml(d) {
           const sub = calcSubtotalItem(it);
           const cant = parseFloat(it.cant)||1;
           const desc = it.desc ||
-            [it.comboSerie,it.comboConfig,it.comboColor,it.comboVidrio,it.comboGrosor].filter(Boolean).join(' · ') || '';
-          const medidas = (it.ancho && it.alto) ? it.ancho+'×'+it.alto : '—';
+            [it.comboCat,it.comboSerie,it.comboConfig,it.comboColor,it.comboVidrio,it.comboGrosor].filter(Boolean).join(' · ') || '';
+          const medidas = (it.ancho && it.alto) ? it.ancho+'×'+it.alto+' m' : '—';
           const m2txt = m2>0 ? (m2*cant).toFixed(2) : '—';
           const bg = i%2===0 ? '#ffffff' : '#f8f9fb';
           return `<tr style="background:${bg};border-bottom:1px solid #dde;">
@@ -4347,15 +4394,18 @@ function abrirModalFin(id) {
   var m = document.getElementById('modalFin');
   if(!m) return;
   m.style.display = 'flex';
-  // Fecha hoy por defecto
   var hoy = new Date().toISOString().split('T')[0];
-  document.getElementById('finEditId').value  = id || '';
-  document.getElementById('finFecha').value   = hoy;
-  document.getElementById('finTipo').value    = 'ingreso';
-  document.getElementById('finObra').value    = '';
+  // Reset
+  _finAdelantos = [];
+  _finEgresos   = [];
+  document.getElementById('finEditId').value      = id || '';
+  document.getElementById('finFecha').value       = hoy;
+  document.getElementById('finTipo').value        = 'ingreso';
+  document.getElementById('finObra').value        = '';
   document.getElementById('finSolicitante').value = '';
-  document.getElementById('finMonto').value   = '';
-  document.getElementById('finDesc').value    = '';
+  document.getElementById('finMontoObra').value   = '';
+  document.getElementById('finMonto').value       = '';
+  document.getElementById('finDesc').value        = '';
   if(id) {
     var mov = finGet().find(function(x){ return x.id===id; });
     if(mov) {
@@ -4363,10 +4413,15 @@ function abrirModalFin(id) {
       document.getElementById('finFecha').value       = mov.fecha||hoy;
       document.getElementById('finObra').value        = mov.obra||'';
       document.getElementById('finSolicitante').value = mov.solicitante||'';
-      document.getElementById('finMonto').value       = mov.monto||'';
-      document.getElementById('finDesc').value        = mov.desc||'';
+      document.getElementById('finMontoObra').value   = mov.montoObra||'';
+      _finAdelantos = (mov.adelantos||[]).slice();
+      _finEgresos   = (mov.egresos||[]).map(function(e){ return {monto:e.monto||0, desc:e.desc||''}; });
     }
   }
+  finRenderAdelantos();
+  finRenderEgresos();
+  finActualizarTotalEgresos();
+  finRecalcularRestante();
 }
 
 function cerrarModalFin() {
@@ -4388,13 +4443,19 @@ function guardarFin() {
   if(!monto||monto<=0){ toast('⚠️','Ingresa un monto válido'); return; }
   if(!fecha){ toast('⚠️','Selecciona una fecha'); return; }
 
+  var montoObra = parseFloat(document.getElementById('finMontoObra').value||0);
+  var adelantos = _finAdelantos.slice();
+  var egresos   = _finEgresos.map(function(e){ return {monto:e.monto||0, desc:e.desc||''}; });
+  var totalEgr  = egresos.reduce(function(s,e){return s+parseFloat(e.monto||0);},0);
   var movs = finGet();
   if(editId) {
     var idx = movs.findIndex(function(x){ return x.id===editId; });
-    if(idx>=0) movs[idx] = {id:editId,tipo:tipo,fecha:fecha,obra:obra,solicitante:solic,monto:monto,desc:desc};
+    if(idx>=0) movs[idx] = {id:editId,tipo:tipo,fecha:fecha,obra:obra,solicitante:solic,
+      monto:totalEgr||monto,desc:desc,montoObra:montoObra,adelantos:adelantos,egresos:egresos};
     toast('💾','Movimiento actualizado');
   } else {
-    movs.unshift({id:'FIN-'+Date.now(),tipo:tipo,fecha:fecha,obra:obra,solicitante:solic,monto:monto,desc:desc});
+    movs.unshift({id:'FIN-'+Date.now(),tipo:tipo,fecha:fecha,obra:obra,solicitante:solic,
+      monto:totalEgr||monto,desc:desc,montoObra:montoObra,adelantos:adelantos,egresos:egresos});
     toast('✅','Movimiento registrado');
   }
   finSet(movs);
@@ -4412,52 +4473,93 @@ function eliminarFin(id) {
 
 function renderFin() {
   var tbody = document.getElementById('finBody');
-  if(!tbody) return;
-  var q    = (document.getElementById('finSearch')||{value:''}).value.toLowerCase();
-  var tipo = (document.getElementById('finFiltroTipo')||{value:''}).value;
-  var all  = finGet();
-  var movs = all.filter(function(x){
-    var mq = !q || (x.obra||'').toLowerCase().includes(q) || (x.solicitante||'').toLowerCase().includes(q);
-    var mt = !tipo || x.tipo===tipo;
+  var q     = (document.getElementById('finSearch')||{value:''}).value.toLowerCase();
+  var tipo  = (document.getElementById('finFiltroTipo')||{value:''}).value;
+  var all   = finGet();
+  var movs  = all.filter(function(x){
+    var mq = !q||(x.obra||'').toLowerCase().includes(q)||(x.solicitante||'').toLowerCase().includes(q);
+    var mt = !tipo||x.tipo===tipo;
     return mq && mt;
   });
 
-  // KPIs
-  var totalIng = all.filter(function(x){return x.tipo==='ingreso';}).reduce(function(s,x){return s+parseFloat(x.monto||0);},0);
-  var totalEgr = all.filter(function(x){return x.tipo==='egreso';}).reduce(function(s,x){return s+parseFloat(x.monto||0);},0);
-  var restante = totalIng - totalEgr;
-  var fmt = function(n){ return 'S/ '+n.toLocaleString('es-PE',{minimumFractionDigits:2,maximumFractionDigits:2}); };
+  var fmt = function(n){ return 'S/ '+parseFloat(n||0).toLocaleString('es-PE',{minimumFractionDigits:2}); };
 
-  var el_i=document.getElementById('finTotalIng');
-  var el_e=document.getElementById('finTotalEgr');
-  var el_r=document.getElementById('finRestante');
-  var el_m=document.getElementById('finTotalMovs');
-  if(el_i) el_i.textContent = fmt(totalIng);
-  if(el_e) el_e.textContent = fmt(totalEgr);
-  if(el_r){ el_r.textContent = fmt(restante); el_r.style.color = restante>=0?'#2563eb':'#dc2626'; }
-  if(el_m) el_m.textContent = all.length;
+  // KPIs globales
+  var totalObras    = 0; // suma de todos los montos de obra
+  var totalEgr      = 0; // suma de todos los egresos
+  var totalAdelantos= 0; // suma de todos los adelantos
+  var totalRestPago = 0; // suma de todos los restantes de pago de obra
 
+  all.forEach(function(x){
+    var montoObra = parseFloat(x.montoObra||0);
+    var sumAdel   = (x.adelantos||[]).reduce(function(s,a){return s+parseFloat(a||0);},0);
+    var sumEgr    = (x.egresos||[]).reduce(function(s,e){return s+parseFloat(e.monto||0);},0)
+                    || parseFloat(x.monto||0);
+    var restPago  = montoObra - sumAdel;
+    totalObras     += montoObra;
+    totalEgr       += sumEgr;
+    totalAdelantos += sumAdel;
+    totalRestPago  += restPago;
+  });
+
+  // Restante = Total Adelantos - Total Egresos
+  var restante = totalAdelantos - totalEgr;
+
+  var el_o =document.getElementById('finTotalObras');
+  var el_e =document.getElementById('finTotalEgr');
+  var el_r =document.getElementById('finRestante');
+  var el_rp=document.getElementById('finRestantePagos');
+  if(el_o)  el_o.textContent  = fmt(totalObras);
+  if(el_e)  el_e.textContent  = fmt(totalEgr);
+  if(el_r){ el_r.textContent  = fmt(restante); el_r.style.color = restante>=0?'#16a34a':'#dc2626'; }
+  if(el_rp) el_rp.textContent = fmt(totalRestPago);
+
+  if(!tbody) return;
   if(!movs.length){
-    tbody.innerHTML='<tr><td colspan="7" style="text-align:center;color:#94a3b8;padding:24px;font-style:italic;">Sin movimientos</td></tr>';
+    tbody.innerHTML='<tr><td colspan="8" style="text-align:center;color:#94a3b8;padding:24px;font-style:italic;">Sin movimientos</td></tr>';
     return;
   }
 
-  var rows='';
+  var rows = '';
   movs.forEach(function(x){
     var xid = escH(x.id||'');
-    var esIng = x.tipo==='ingreso';
-    var tipoHtml = esIng
-      ? '<span style="background:#dcfce7;color:#16a34a;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;">💚 Ingreso</span>'
-      : '<span style="background:#fee2e2;color:#dc2626;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;">❤️ Egreso</span>';
-    var montoColor = esIng ? '#16a34a' : '#dc2626';
-    var montoSign  = esIng ? '+' : '-';
+    // Monto de obra
+    var montoObra = parseFloat(x.montoObra||0);
+    // Adelantos: restante de pago = montoObra - suma adelantos
+    var sumAdel   = (x.adelantos||[]).reduce(function(s,a){return s+parseFloat(a||0);},0);
+    var restPago  = montoObra - sumAdel;
+    // Egresos: suma de egresos individuales
+    var sumEgr    = (x.egresos||[]).reduce(function(s,e){return s+parseFloat(e.monto||0);},0)
+                    || parseFloat(x.monto||0);
+    // Restante ingresos = montoObra - egresos
+    var restIng   = montoObra - sumEgr;
+
+    var restPagoColor = restPago >= 0 ? '#f59e0b' : '#dc2626';
+    var restIngColor  = restIng  >= 0 ? '#16a34a' : '#dc2626';
+
+    // Tooltip de egresos detallados
+    var egrTooltip = (x.egresos||[]).map(function(e,i){
+      return (i+1)+'. '+e.desc+': S/'+parseFloat(e.monto||0).toFixed(2);
+    }).join(' | ');
+
     rows += '<tr>'
-      +'<td>'+tipoHtml+'</td>'
-      +'<td style="font-weight:600;">'+(x.obra||'—')+'</td>'
-      +'<td>'+(x.fecha||'—')+'</td>'
+      +'<td style="font-weight:700;">'+(x.obra||'—')+'<br>'
+        +'<span style="font-size:10px;color:var(--muted);">'
+          +(x.tipo==='ingreso'
+            ?'<span style="color:#16a34a;">💚 Ingreso</span>'
+            :'<span style="color:#dc2626;">❤️ Egreso</span>')
+        +'</span>'
+      +'</td>'
+      +'<td style="white-space:nowrap;">'+(x.fecha||'—')+'</td>'
       +'<td style="color:var(--muted);">'+(x.solicitante||'—')+'</td>'
-      +'<td style="color:var(--muted);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+(x.desc||'—')+'</td>'
-      +'<td class="num" style="color:'+montoColor+';font-weight:700;">'+montoSign+fmt(parseFloat(x.monto||0))+'</td>'
+      +'<td style="text-align:right;font-weight:700;color:#1a3a8f;">'+(montoObra>0?fmt(montoObra):'—')+'</td>'
+      +'<td style="text-align:right;font-weight:700;color:#7c3aed;">'+(sumAdel>0?fmt(sumAdel):'—')+'</td>'
+      +'<td style="text-align:right;font-weight:700;color:'+restPagoColor+';">'+(montoObra>0?fmt(restPago):'—')+'</td>'
+      +'<td style="text-align:right;font-weight:700;color:#dc2626;" title="'+escH(egrTooltip)+'">'
+        +(sumEgr>0?fmt(sumEgr):'—')
+        +(x.egresos&&x.egresos.length>1?' <span style="font-size:9px;color:#999;">('+x.egresos.length+' items)</span>':'')
+      +'</td>'
+      +'<td style="text-align:right;font-weight:700;color:'+restIngColor+';">'+(montoObra>0?fmt(restIng):'—')+'</td>'
       +'<td onclick="event.stopPropagation()">'
         +'<div class="gap8">'
           +'<button class="btn btn-o btn-sm" data-xid="'+xid+'" onclick="abrirModalFin(this.dataset.xid)">✏️</button>'
@@ -4467,6 +4569,14 @@ function renderFin() {
     +'</tr>';
   });
   tbody.innerHTML = rows;
+}
+
+function finFiltrarObra(obra) {
+  var el=document.getElementById('finSearch');
+  if(el) el.value=obra;
+  var det=document.querySelector('#screen-fin details');
+  if(det) det.open=true;
+  renderFin();
 }
 
 
@@ -4603,6 +4713,116 @@ function finImprimir() {
     +'</body></html>';
 
   _exportarComoPDF(htmlRep, 'Reporte_Finanzas_'+new Date().toISOString().split('T')[0]+'.pdf');
+}
+
+
+// ── Finanzas: Adelantos ───────────────────────────────────
+var _finAdelantos = []; // array de montos de adelanto
+
+function finAgregarAdelanto(monto) {
+  _finAdelantos.push(parseFloat(monto)||0);
+  finRenderAdelantos();
+  finRecalcularRestante();
+}
+
+function finEliminarAdelanto(idx) {
+  _finAdelantos.splice(idx, 1);
+  finRenderAdelantos();
+  finRecalcularRestante();
+}
+
+function finRenderAdelantos() {
+  var cont = document.getElementById('finAdelantosList');
+  if(!cont) return;
+  if(!_finAdelantos.length) {
+    cont.innerHTML = '<div style="font-size:11px;color:var(--muted);padding:4px 0;">Sin adelantos registrados</div>';
+    return;
+  }
+  cont.innerHTML = _finAdelantos.map(function(m, i){
+    return '<div style="display:flex;align-items:center;gap:8px;">'
+      +'<span style="font-size:11px;color:#555;flex-shrink:0;">Adelanto '+(i+1)+':</span>'
+      +'<input type="number" value="'+m+'" min="0" step="0.01"'
+      +' data-idx="'+i+'"'
+      +' onchange="_finAdelantos[this.dataset.idx]=parseFloat(this.value)||0;finRecalcularRestante();"'
+      +' style="flex:1;padding:6px 8px;border-radius:6px;border:1px solid var(--border);'
+      +'background:var(--inp);color:var(--text);font-size:13px;text-align:right;">'
+      +'<button data-idx="'+i+'" onclick="finEliminarAdelanto(this.dataset.idx)"'
+      +' style="background:#fee2e2;color:#dc2626;border:none;border-radius:6px;'
+      +'padding:5px 10px;cursor:pointer;font-size:12px;flex-shrink:0;">✕</button>'
+    +'</div>';
+  }).join('');
+}
+
+function finRecalcularRestante() {
+  var montoObra = parseFloat(document.getElementById('finMontoObra').value||0);
+  var totalAdel = _finAdelantos.reduce(function(s,m){return s+parseFloat(m||0);},0);
+  var restante  = montoObra - totalAdel;
+  var el = document.getElementById('finRestantePago');
+  if(el){
+    el.textContent = 'S/ '+restante.toLocaleString('es-PE',{minimumFractionDigits:2,maximumFractionDigits:2});
+    el.style.color = restante >= 0 ? '#16a34a' : '#dc2626';
+  }
+}
+
+
+// ── Finanzas: Egresos múltiples ───────────────────────────
+var _finEgresos = []; // [{monto, desc}]
+
+function finAgregarEgreso(monto, desc) {
+  _finEgresos.push({monto: parseFloat(monto)||0, desc: desc||''});
+  finRenderEgresos();
+  finActualizarTotalEgresos();
+}
+
+function finEliminarEgreso(idx) {
+  _finEgresos.splice(idx, 1);
+  finRenderEgresos();
+  finActualizarTotalEgresos();
+}
+
+function finRenderEgresos() {
+  var cont = document.getElementById('finEgresosList');
+  if(!cont) return;
+  if(!_finEgresos.length) {
+    cont.innerHTML = '<div style="font-size:11px;color:var(--muted);padding:4px 0;">Sin egresos registrados</div>';
+    return;
+  }
+  cont.innerHTML = _finEgresos.map(function(e, i){
+    return '<div style="background:var(--card);border:1px solid #fca5a5;border-radius:8px;padding:10px;display:flex;flex-direction:column;gap:6px;">'
+      +'<div style="display:flex;align-items:center;gap:8px;">'
+        +'<span style="font-size:11px;color:#dc2626;font-weight:700;flex-shrink:0;">Egreso '+(i+1)+'</span>'
+        +'<input type="number" value="'+e.monto+'" min="0" step="0.01" placeholder="0.00"'
+        +' data-idx="'+i+'" data-field="monto"'
+        +' onchange="_finEgresos[this.dataset.idx].monto=parseFloat(this.value)||0;finActualizarTotalEgresos();"'
+        +' style="flex:1;padding:6px 8px;border-radius:6px;border:1px solid #fca5a5;'
+        +'background:var(--inp);color:var(--text);font-size:13px;text-align:right;"'
+        +' placeholder="Monto S/">'
+        +'<button data-idx="'+i+'" onclick="finEliminarEgreso(this.dataset.idx)"'
+        +' style="background:#fee2e2;color:#dc2626;border:none;border-radius:6px;'
+        +'padding:5px 10px;cursor:pointer;font-size:12px;flex-shrink:0;">✕</button>'
+      +'</div>'
+      +'<input type="text" value="'+escH(e.desc)+'" placeholder="Descripción del egreso..."'
+      +' data-idx="'+i+'" data-field="desc"'
+      +' onchange="_finEgresos[this.dataset.idx].desc=this.value;"'
+      +' style="padding:6px 8px;border-radius:6px;border:1px solid #fca5a5;'
+      +'background:var(--inp);color:var(--text);font-size:12px;width:100%;box-sizing:border-box;">'
+    +'</div>';
+  }).join('');
+}
+
+function finActualizarTotalEgresos() {
+  var total = _finEgresos.reduce(function(s,e){return s+parseFloat(e.monto||0);},0);
+  var el = document.getElementById('finTotalEgresosModal');
+  if(el) el.textContent = 'S/ '+total.toLocaleString('es-PE',{minimumFractionDigits:2});
+  // Actualizar campo oculto
+  var hid = document.getElementById('finMonto');
+  if(hid) hid.value = total;
+  // Actualizar desc oculto
+  var hidDesc = document.getElementById('finDesc');
+  if(hidDesc) hidDesc.value = _finEgresos.map(function(e,i){
+    return (i+1)+'. '+e.desc+' (S/'+e.monto+')';
+  }).join(' | ');
+  finRecalcularRestante();
 }
 
 window.onload=function(){
@@ -5588,7 +5808,7 @@ function comboSetGrosor(id, val) {
   it.comboGrosor=val;
   it.material = comboToMaterial(it.comboVidrio, val);
   // Auto-descripción
-  it.desc = [it.comboSerie, it.comboConfig, it.comboColor, it.comboVidrio, val]
+  it.desc = [it.comboCat, it.comboSerie, it.comboConfig, it.comboColor, it.comboVidrio, val]
               .filter(Boolean).join(' · ');
   _refreshComboRow(id);
 }
@@ -5718,6 +5938,21 @@ function resetCloudConfig(){
   cloudStatus('⚪','Sin nube','rgba(255,255,255,.4)');
   closeCloudConfig();toast('ℹ️','Nube desconectada');
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
